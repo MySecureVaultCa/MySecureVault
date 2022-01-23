@@ -9,4 +9,4 @@ This repo here is offered as-is, with no guarantee whatsoever. If you only want 
 You can download the software and use it, but for the moment, the installation is undocumented. I can tell you that it is written in PHP with a MySQL 5.7 backend, and that the database connection info is in the functions.php file. Eventually, I will document it better.
 
 ## Enterprise functionalities
-At first, I did not develop MySecureVault to have auditing, RBAC, or other fancy discovery functionalities. I do not offer official enterprise or paid support, but I guess this could come in the future. I wanted to keep MySecureVault.
+At first, I did not develop MySecureVault to have auditing, RBAC, or other fancy discovery functionalities. I do not offer official enterprise or paid support, but I guess this could come in the future. I wanted to keep MySecureVault as secure and simple as possible.
