@@ -6,7 +6,13 @@ My name is Jean-François Courteau, and I developped MySecureVault out of the pe
 This repo here is offered as-is, with no guarantee whatsoever. If you only want to USE MySecureVault, you can visit https://mysecurevault.ca, which is hosted on my servers.
 
 ## Installation
-You can download the software and use it, but for the moment, the installation is undocumented. I can tell you that it is written in PHP with a MySQL 5.7 backend, and that the database connection info is in the functions.php file. Eventually, I will document it better.
+You can download the software and use it, but for the moment, the installation is undocumented. I can tell you that it is written in PHP with a MySQL 5.7 backend
+The database connection info and a whole bunch of settings can be set in the config.php file. Eventually, I will document it better.
 
 ## Enterprise functionalities
-At first, I did not develop MySecureVault to have auditing, RBAC, or other fancy discovery functionalities. I do not offer official enterprise or paid support, but I guess this could come in the future. I wanted to keep MySecureVault as secure and simple as possible.
+At first, I did not develop MySecureVault to have auditing, RBAC, or other fancy discovery functionalities. I wanted to keep MySecureVault as secure and simple as possible. However, in the coming months, I plan to develop some business features for paid subscribers, like full action logging, device / user management, and remote password access through an API similar to Thycotic Secret Server.
+
+## Support
+I do not offer official enterprise or paid support, but I guess this could come in the future.
+
+You can get more info on our website at https://mysecurevault.ca
