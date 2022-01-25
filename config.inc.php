@@ -5,6 +5,7 @@ $config = array();
 	$config['currentCipherSuite'] = 'aes-256-gcm';									// Current cipher suite. CHANGING THIS CIPHER SUITE REQUIRES A THOROUGH ANALYSIS OF THE CODE. DO NOT CHANGE ON YOUR OWN!
 	$config['currentPadding'] = OPENSSL_PKCS1_OAEP_PADDING;							// Current key encryption padding. CHANGING THIS PADDING ALGORITHM REQUIRES A THOROUGH ANALYSIS OF THE CODE. DO NOT CHANGE ON YOUR OWN!
 	$config['currentPaddingString'] = 'OPENSSL_PKCS1_OAEP_PADDING';					// This value must be a text string identical to the above padding algorithm. REQUIRES A THOROUGH ANALYSIS OF THE CODE. DO NOT CHANGE ON YOUR OWN!
+	$config['cmsAdmin'] = array("1");												// User IDs of users who can manage the FAQ and terms and conditions.
 	
 	// Main database connection string	
 	$config['dbServerName'] = 'change.me.local';									// MySQL server name or IP address
