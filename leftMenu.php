@@ -48,6 +48,11 @@
 			<span style="font-family: arial;"> <?php echo $strings['133'] ?></span>
 		</i>
 	</a>
+	<a href="business.php" style="padding:15px!important;" class="w3-hover-blue w3-bar-item w3-button w3-large w3-border-top">
+		<i class="fa fa-briefcase">
+			<span style="font-family: arial;"> <?php echo $strings['353'] ?> ($)</span>
+		</i>
+	</a>
 	<div class="w3-dropdown-hover">
 		<button class="w3-hover-blue w3-button w3-large w3-border-top" style="padding:15px!important;">
 			<i class="fa fa-globe">
