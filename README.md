@@ -6,8 +6,13 @@ My name is Jean-François Courteau, and I developped MySecureVault out of the pe
 This repo here is offered as-is, with no guarantee whatsoever. If you only want to USE MySecureVault, you can visit https://mysecurevault.ca, which is hosted on my servers.
 
 ## Installation
-You can download the software and use it, but for the moment, the installation is undocumented. I can tell you that it is written in PHP with a MySQL 5.7 backend
-The database connection info and a whole bunch of settings can be set in the config.php file. Eventually, I will document it better.
+1. git clone https://github.com/MySecureVaultCa/MySecureVault/ to a folder you can share on your favorite php web server (Apache is preferred)
+2. Import the database schemas from https://github.com/MySecureVaultCa/MySecureVault/tree/main/dbSchema in 2 different databases on your MySQL server(s)
+3. Copy config.inc.php to config.php at the root, and modify the settings according to your setup
+4. Configure the config.php file
+5. Set $config['baseUrl'] to the URL with which you plan to access your MySecureVault instance, and make sure SSL is configured properly
+6. Set your database connection strings, mail server configuration and make sure all settings are OK in the config.php file
+7. Connect to the base URL, and create a first user certificate from the home page to start using MySecureVault.ca
 
 ## Enterprise functionalities
 At first, I did not develop MySecureVault to have auditing, RBAC, or other fancy discovery functionalities. I wanted to keep MySecureVault as secure and simple as possible. However, in the coming months, I plan to develop some business features for paid subscribers, like full action logging, device / user management, and remote password access through an API similar to Thycotic Secret Server.
