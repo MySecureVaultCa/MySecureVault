@@ -13,6 +13,8 @@
 	}
 ?>
 
+<?php if($config['devMode']) { echo '<div class="w3-block"><p class="w3-center w3-red">MySecureVault is in DEV MODE! Do not type any production information!</p></div>'; } ?>
+
 <div class="w3-bar">
 	<?php if ($parentPage == 'index.php') { echo '<h1'; } else {echo '<div';} ?> class="w3-bar-item" style="padding-bottom: 0px; margin-bottom: 0px; margin-top:10px; display: inline-block;"><a href="index.php"><img class="websiteLogo" src="<?php echo $logo ?>" alt="<?php echo $pageTitle; ?>"></a><?php if ($parentPage == 'index.php') { echo '</h1>'; } else { echo '</div>';} ?>
 	<?php if ($parentPage == 'index.php') { echo '<h2'; } else {echo '<div';} ?> class="w3-xlarge w3-text-blue w3-hide-medium w3-hide-small w3-right w3-margin" style="font-family:Segoe UI,Arial,sans-serif;"><?php echo $strings['136']; if ($parentPage == 'index.php') { echo '</h2>'; } else { echo '</div>';} ?>
