@@ -6,8 +6,6 @@ error_reporting(E_ALL);
 */
 require_once 'config.php';
 
-// $currentCipherSuite = 'aes-256-gcm';
-// $currentPadding = OPENSSL_PKCS1_OAEP_PADDING;
 $admins = array(
 	"34"
 );
