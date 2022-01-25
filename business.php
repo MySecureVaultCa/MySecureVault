@@ -64,6 +64,13 @@ if (initiateSession()) {
 		$strings["$stringId"] = $row["$language"];
 	}
 
+	$siteTitle = $strings['1'];
+	$pageTitle = $strings['354'];
+	$pageDescription = $strings['355'];
+	$pageKeywords = $strings['356'];
+	$pageIndex = 'index';
+	$pageFollow = 'nofollow';
+	
 	if(isset($_SESSION["token"])) {
 		if (authenticateToken()) {
 			$loadContent = true;
@@ -74,13 +81,6 @@ if (initiateSession()) {
 			} else {
 				$isAdmin = false;
 			}
-			
-			$siteTitle = $strings['35'];
-			$pageTitle = $siteTitle . ' - ' . $_SESSION["fullName"] . ' - ' . $strings['251'];
-			$pageDescription = 
-			$pageKeyworkds = 
-			$pageIndex = 'noindex';
-			$pageFollow = 'nofollow';
 			
 			if($_GET["reload"] == "no") {
 				// Do nothing...

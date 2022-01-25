@@ -57,7 +57,7 @@
 		$siteTitle = $strings['1'];
 		$pageTitle = $strings['132'];
 		$pageDescription = $strings['252'];
-		$pageKeyworkds = $strings['253'];
+		$pageKeywords = $strings['253'];
 		$pageIndex = 'index';
 		$pageFollow = 'nofollow';
 		

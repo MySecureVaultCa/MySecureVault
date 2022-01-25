@@ -665,6 +665,12 @@ function registerCertificate($cert, $certPass, $userId, $secure) {
 		$conn->query($sql);
 		$userId = mysqli_insert_id($conn);
 		
+		// Does the new user try to create a new business account?
+		if($_SESSION['newBusinessAccount'] === true) {
+			$sql = "UPDATE users SET businessAccount='1' WHERE id='$userId'";
+			$conn->query($sql);
+		}
+		
 		//Create password encryption key for NEW user
 		$rawEncryptionKey = generateEncryptionKeyNextGen();
 		$encryptionKeyVersion = '2';
@@ -1343,6 +1349,26 @@ function generateRandomIdentity() {
 	return $id;
 }
 
+
+//////////////////////////// BUSINESS FUNCTIONS ////////////////////////////
+
+function getBusinessInfo($userId) {
+	global $conn;
+	
+	$sql = "SELECT cipherSuite, iv, entry, tag FROM users WHERE id='$userId' AND businessAccount='1'";
+	$db_rawBusinessInfo = $conn -> query($sql);
+	$db_businessInfo = $db_rawBusinessInfo -> fetch_assoc();
+	
+	if(is_null($db_businessInfo['entry']) || $db_businessInfo['entry'] == '') {
+		$businessInfo = array();
+		$businessInfo['status'] = 'uninitialized';
+	} else {
+		$businessInfo['status'] = 'initialized';
+		// There is info in here... decrypt it and turn it into an array!
+	}
+	
+	return $businessInfo;
+}
 
 
 

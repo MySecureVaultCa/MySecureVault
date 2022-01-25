@@ -50,7 +50,7 @@
 	</a>
 	<!-- Business -->
 	<a href="business.php" style="padding:15px!important;" class="w3-hover-blue w3-bar-item w3-button w3-large w3-border-top">
-		<i class="fa fa-briefcase">
+		<i class="fa fa-credit-card">
 			<span style="font-family: arial;"> <?php echo $strings['353'] ?></span>
 		</i>
 	</a>

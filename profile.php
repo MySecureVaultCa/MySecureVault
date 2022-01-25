@@ -90,6 +90,22 @@ if (initiateSession()) {
 				}
 			}
 			
+			// Is this a business user?
+			if($_SESSION['businessAccount']) {
+				// Yep, business user. Is the business initialized?
+				$sql = "SELECT id, cipherSuite, iv, data, tag FROM businesses WHERE userId='$_SESSION[userId]'";
+				$db_rawBusiness = $conn -> query($sql);
+				if (mysqli_num_rows($db_rawBusiness) == 1) {
+					// Yes, we have business data...
+					$db_business = $db_rawBusiness -> fetch_assoc();
+				} else {
+					// Business is not initialized! Display warning message...
+					$message = $strings['378'];
+				}
+			} else {
+				
+			}
+			
 			// ************** Post form ADD PASSWORD ENTRY **************
 			if($_SERVER["REQUEST_METHOD"] == "POST" && $_POST["formAction"] == "addEntry" && $backToForm != true) {
 				$newEntryName = htmlOutput($_POST["newEntryName"]);

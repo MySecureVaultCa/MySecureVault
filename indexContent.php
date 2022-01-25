@@ -128,15 +128,22 @@ if(!isset($loadContent) || $loadContent === false) {
 					<h3 class="w3-center w3-green w3-padding"><a href="javascript:showhide('registration')"><?php echo $strings['9']; ?></a> <i class="fa fa-pencil"></i></h3>
 					<div id="registration" style="display:<?php if($backToRegisterForm == true || $signup === true) { echo 'block'; } else {echo 'none';}  ?>">
 						<h4 class="w3-center w3-padding"><?php echo $strings['10']; ?></h4>
-						<div class="w3-center">
-							<a class="w3-btn w3-blue" href="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>?control=anonymousRegistration"><i class="fa fa-user-secret w3-xlarge"></i> <?php echo $strings['331']; ?></a>
-							<div class="w3-small w3-padding"><?php echo $strings['332']; ?></div>
-						</div>
+						<?php if($businessSignup !== true) { ?>
+							<div class="w3-center">
+								<a class="w3-btn w3-blue" href="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>?control=anonymousRegistration"><i class="fa fa-user-secret w3-xlarge"></i> <?php echo $strings['331']; ?></a>
+								<div class="w3-small w3-padding"><?php echo $strings['332']; ?></div>
+							</div>
+						<?php } else { ?>
+							<div class="w3-center">
+								<div class="w3-small w3-padding"><?php echo $strings['377']; ?></div>
+							</div>
+						<?php } ?>
 						<hr>
 						<form class="w3-container" method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" autocomplete="off">
 							<?php
 							echo '<input type="hidden" name="formUid" value="' . $_SESSION["secureFormCode"] . '">';
 							echo '<input type="hidden" name="formAction" value="register">';
+							if($businessSignup === true) { echo '<input type="hidden" name="businessSignup" value="yes">'; }
 							?>
 							<div class="w3-padding-16">
 								<label><?php echo $strings['11']; ?></label>

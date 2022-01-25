@@ -19,6 +19,11 @@ if (initiateSession()) {
 		$signup = true;
 	}
 	
+	if($_GET["control"] == "businessSignup") {
+		$businessSignup = true;
+		$signup = true;
+	}
+	
 	if(isset($_GET["setLanguage"])) {
 		if ($_GET["setLanguage"] == "en") {
 			$_SESSION["language"] = "en";
@@ -290,6 +295,17 @@ if (initiateSession()) {
 						
 						$_SESSION['certPublicKey'] = utf8_decode($certData['publicKey']);
 						
+						// Check if this user is part of a business account...
+						$sql = "SELECT businessAccount, cipherSuite, iv, entry, tag FROM users WHERE id='$_SESSION[userId]'";
+						$db_rawUserAccount = $conn -> query($sql);
+						$db_userAccount = $db_rawUserAccount -> fetch_assoc();
+						if($db_userAccount['businessAccount'] == '1') {
+							$_SESSION['businessAccount'] = true;
+						} else {
+							$_SESSION['businessAccount'] = false;
+						}
+						
+						
 						setToken();
 						registerSession($privateDeviceSession);
 						$loadContent = false;
@@ -340,6 +356,7 @@ if (initiateSession()) {
 		$certCity = htmlOutput($_POST['certCity']);
 		$certPassword = $_POST['certPassword'];
 		$certPasswordRetype = $_POST['certPasswordRetype'];
+		$certBusinessAccount = $_POST['businessSignup'];
 		
 		if(strlen($certName) > 256) {
 			$backToForm = true;
@@ -421,6 +438,9 @@ if (initiateSession()) {
 			$certificate = generateNewCertificate($dn, $certPassword);
 			
 			if($certificate != false) {
+				if($certBusinessAccount === 'yes') {
+					$_SESSION['newBusinessAccount'] = true;
+				}
 				registerCertificate($certificate, $certPassword, 'new', $encryptCertificate);
 				
 				$_SESSION["certificateFilename"] = date('Y-m-d_His') . ' - ' . utf8_decode($dn['commonName']);

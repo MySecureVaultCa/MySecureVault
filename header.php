@@ -64,7 +64,7 @@
 			</a>
 			<!-- BUSINESS Button-->
 			<a style="padding: 15px!important;" class="w3-bar-item w3-button w3-large w3-border-top w3-hover-blue" href="business.php">
-				<i class="fa fa-briefcase w3-hover-blue">
+				<i class="fa fa-credit-card w3-hover-blue">
 					<span style="font-family: arial;"> <?php echo $strings['353'] ?></span>
 				</i>
 			</a>
