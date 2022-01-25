@@ -62,6 +62,12 @@
 					<span style="font-family: arial;"> <?php echo $strings['133'] ?></span>
 				</i>
 			</a>
+			<!-- BUSINESS Button-->
+			<a style="padding: 15px!important;" class="w3-bar-item w3-button w3-large w3-border-top w3-hover-blue" href="business.php">
+				<i class="fa fa-briefcase w3-hover-blue">
+					<span style="font-family: arial;"> <?php echo $strings['353'] ?></span>
+				</i>
+			</a>
 			<!-- LANGUAGE -->
 			<div class="w3-bar-item w3-large w3-border-top">
 				<i class="fa fa-globe">
