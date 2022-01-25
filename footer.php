@@ -32,13 +32,15 @@
 			<div class="w3-xxlarge">
 				<a style="color:#3578E5" href="https://www.facebook.com/mysecurevault.ca/" target="_blank"><i class="fa fa-facebook-square"></i></a>
 				<a style="color:rgb(29, 161, 242);" href="https://twitter.com/MySecureVault" target="_blank"><i class="fa fa-twitter-square"></i></a>
+				<a style="color:#000000;" href="https://github.com/MySecureVaultCa/MySecureVault" target="_blank"><i class="fa fa-github"></i></a>
 				<a class="w3-text-blue" href="mailto:info@mysecurevault.ca"><i class="fa fa-envelope"></i></a>
+				
 			</div>
 			<div style="height: 20px;"></div>
 			<a href="index.php"><img class="footerLogo" src="<?php echo $logo ?>" alt="<?php echo $siteTitle; ?>"></a>
 			<br>
 			<span class="w3-tiny">
-				&copy; Copyright 2020 Jean-Fran&ccedil;ois Courteau
+				&copy; Copyright 2022 Jean-Fran&ccedil;ois Courteau
 				<br>
 				<a href="mailto:info@mysecurevault.ca">info@mysecurevault.ca</a>
 			</span>
