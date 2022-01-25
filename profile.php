@@ -54,7 +54,7 @@ if (initiateSession()) {
 				header("Location: $currentPage");
 			}
 			
-			if(in_array($_SESSION['userId'], $admins)) {
+			if(in_array($_SESSION['userId'], $config['cmsAdmin'])) {
 				$isAdmin = true;
 			} else {
 				$isAdmin = false;

@@ -6,10 +6,6 @@ error_reporting(E_ALL);
 */
 require_once 'config.php';
 
-$admins = array(
-	"34"
-);
-
 function initiateSession() {
 	global $config;
 	
