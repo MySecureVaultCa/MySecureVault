@@ -40,9 +40,7 @@
 			<?php // Signup button
 				if(is_null($_SESSION['fullName'])) {
 					echo '
-						<a style="padding: 15px!important;" class="w3-bar-item w3-button w3-large w3-border-top w3-hover-blue" href="';
-						if($parentPage == 'index.php') { echo 'javascript:signUp(\'registration\', \'signupForm\')'; } else { echo 'index.php?control=signup'; }
-						echo '">
+						<a style="padding: 15px!important;" class="w3-bar-item w3-button w3-large w3-border-top w3-hover-blue" href="index.php?control=signup">
 							<i class="fa fa-pencil-square">
 								<span style="font-family: arial;"> ' . $strings['131'] . '</span>
 							</i>

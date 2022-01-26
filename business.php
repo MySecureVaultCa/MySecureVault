@@ -94,6 +94,78 @@ if (initiateSession()) {
 			
 			/****** Page logic goes here! ******/
 			
+			if($_SERVER["REQUEST_METHOD"] == "POST" && $_POST["formAction"] == "saveBusinessInfo") {
+				$businessName = htmlOutput($_POST['businessName']);
+				$businessAddress = htmlOutput($_POST['businessAddress']);
+				$businessCity = htmlOutput($_POST['businessCity']);
+				$businessState = htmlOutput($_POST['businessState']);
+				$businessCountry = htmlOutput($_POST['businessCountry']);
+				$businessEmail = htmlOutput($_POST['businessEmail']);
+				$businessPhone = htmlOutput($_POST['businessPhone']);
+				$billingName = htmlOutput($_POST['billingName']);
+				$billingAddress = htmlOutput($_POST['billingAddress']);
+				$billingCity = htmlOutput($_POST['billingCity']);
+				$billingState = htmlOutput($_POST['billingState']);
+				$billingCountry = htmlOutput($_POST['billingCountry']);
+				$billingEmail = htmlOutput($_POST['billingEmail']);
+				$businessTerms = htmlOutput($_POST['businessTerms']);
+				
+				if(strlen($businessName) > 256) {
+					$backToForm = true;
+					$businessNameError = $strings['402'];
+				} elseif(strlen($businessName) < 1) {
+					$backToForm = true;
+					$businessNameError = $strings['401'];
+				}
+				
+				if(strlen($businessAddress) > 256) {
+					$backToForm = true;
+					$businessAddressError = $strings['404'];
+				} elseif(strlen($businessAddress) < 1) {
+					$backToForm = true;
+					$businessAddressError = $strings['403'];
+				}
+				
+				if(strlen($businessCity) > 256) {
+					$backToForm = true;
+					$businessCityError = $strings['406'];
+				} elseif(strlen($businessCity) < 1) {
+					$backToForm = true;
+					$businessCityError = $strings['405'];
+				}
+				
+				if(strlen($businessState) > 256) {
+					$backToForm = true;
+					$businessStateError = $strings['408'];
+				} elseif(strlen($businessState) < 1) {
+					$backToForm = true;
+					$businessStateError = $strings['407'];
+				}
+				
+				if(!validateCountry($businessCountry)) {
+					$backToForm = true;
+					$businessCountryError = $strings["27"];
+				}
+				
+				if(strlen($businessEmail) > 320) {
+					$backToForm = true;
+					$businessEmailError = $strings["24"];
+				} elseif(strlen($businessEmail) < 1) {
+					$backToForm = true;
+					$businessEmailError = $strings["25"];
+				} elseif(!filter_var($businessEmail, FILTER_VALIDATE_EMAIL)) {
+					$backToForm = true;
+					$businessEmailError = $strings["26"];
+				}
+				
+				if(strlen($businessPhone) > 30) {
+					$backToForm = true;
+					$businessPhoneError = $strings['410'];
+				} elseif(strlen($businessPhone) < 3) {
+					$backToForm = true;
+					$businessPhoneError = $strings['409'];
+				}
+			}
 			
 			
 			

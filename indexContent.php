@@ -52,8 +52,6 @@ if(!isset($loadContent) || $loadContent === false) {
 		<div class="w3-row">
 			<div class="w3-third">
 				<?php include 'leftMenu.php'; ?>
-			</div>
-			<div class="w3-third">
 				<?php
 					if(queryFromTor()){ ?>
 						<div class="w3-card-4 w3-margin" id="torAccess" style="display:block;">
@@ -70,6 +68,8 @@ if(!isset($loadContent) || $loadContent === false) {
 							</div>
 						</div>
 				<?php } ?>
+			</div>
+			<div class="w3-third">
 				<?php if ($_SESSION['certificateFile'] != '') { ?>
 				<div class="w3-card-4 w3-margin w3-border-green">	
 					<h3 class="w3-center w3-green w3-padding"><i class="fa fa-certificate"></i> <?php echo $strings['268']; ?></h3>
@@ -125,17 +125,43 @@ if(!isset($loadContent) || $loadContent === false) {
 				</div>
 				<?php if ($_SESSION['certificateFile'] == '') { ?>
 				<div class="w3-card-4 w3-margin">
-					<h3 class="w3-center w3-green w3-padding"><a href="javascript:showhide('registration')"><?php echo $strings['9']; ?></a> <i class="fa fa-pencil"></i></h3>
+					<h3 class="w3-center w3-green w3-padding" style="margin-bottom: 0px;"><a href="javascript:showhide('registration')"><?php echo $strings['9']; ?></a> <i class="fa fa-pencil"></i></h3>
 					<div id="registration" style="display:<?php if($backToRegisterForm == true || $signup === true) { echo 'block'; } else {echo 'none';}  ?>">
-						<h4 class="w3-center w3-padding"><?php echo $strings['10']; ?></h4>
+						<div class="w3-row">
+						<?php if($businessSignup !== true) { /* Buttons when registering for free account */?>
+							<div class="w3-half w3-center w3-padding">
+								<div class="w3-btn w3-disabled"><i class="fa fa-users"></i> <?php echo $strings['357']; ?></div>
+							</div>
+							<div class="w3-half w3-center w3-light-grey w3-btn">
+								<a href="/index.php?control=businessSignup" class="w3-block w3-padding"><i class="fa fa-building"></i> <?php echo $strings['358']; ?></a>
+							</div>
+						<?php } else { /* Buttons when registering for business account */ ?>
+							<div class="w3-half w3-center w3-light-grey w3-btn">
+								<a href="/index.php?control=signup" class="w3-block w3-padding"><i class="fa fa-users"></i> <?php echo $strings['357']; ?></a>
+							</div>
+							<div class="w3-half w3-center w3-padding">
+								<div class="w3-btn w3-disabled"><i class="fa fa-building"></i> <?php echo $strings['358']; ?></div>
+							</div>
+						<?php } ?>
+						</div>
+						
 						<?php if($businessSignup !== true) { ?>
-							<div class="w3-center">
+							<div class="w3-center w3-margin-top w3-margin-bottom">
+								<h4 class="w3-xlarge w3-margin-top w3-margin-bottom"><i class="fa fa-users"></i> <?php echo $strings['398']; ?></h4>
 								<a class="w3-btn w3-blue" href="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>?control=anonymousRegistration"><i class="fa fa-user-secret w3-xlarge"></i> <?php echo $strings['331']; ?></a>
-								<div class="w3-small w3-padding"><?php echo $strings['332']; ?></div>
+								<div class="w3-small w3-padding w3-margin-top">
+									<?php echo $strings['332']; ?>
+								</div>
 							</div>
 						<?php } else { ?>
-							<div class="w3-center">
-								<div class="w3-small w3-padding"><?php echo $strings['377']; ?></div>
+							<div class="w3-center w3-margin-top w3-margin-bottom">
+								<h4 class="w3-xlarge w3-margin-top w3-margin-bottom"><i class="fa fa-building"></i> <?php echo $strings['399']; ?></h4>
+								<div class="w3-margin-bottom">
+									<?php echo $strings['400']; ?> <span class="w3-text-red"><b>3$</b></span> <?php echo $strings['361']; ?>
+								</div>
+								<div class="w3-small w3-padding">
+									<?php echo $strings['377']; ?>
+								</div>
 							</div>
 						<?php } ?>
 						<hr>

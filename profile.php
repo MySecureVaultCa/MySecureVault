@@ -101,6 +101,11 @@ if (initiateSession()) {
 				} else {
 					// Business is not initialized! Display warning message...
 					$message = $strings['378'];
+					
+					// Well in fact, redirect to the business page to complete business information...
+					$loadContent = false;
+					header("HTTP/1.1 301 Moved Permanently");
+					header("Location: business.php");
 				}
 			} else {
 				

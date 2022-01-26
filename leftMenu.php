@@ -28,8 +28,7 @@
 		} else {
 			echo '
 			<a style="padding:15px!important;" class="w3-hover-blue w3-bar-item w3-button w3-large w3-border-top" href="';
-					if($parentPage == 'index.php') { echo 'javascript:signUp(\'registration\', \'signupForm\')'; } else { echo 'index.php?control=signup'; }
-					echo '">
+					echo 'index.php?control=signup">
 				<i class="fa fa-pencil-square">
 					<span style="font-family: arial;"> ' . $strings['131'] . '</span>
 				</i>

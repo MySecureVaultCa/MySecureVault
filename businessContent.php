@@ -214,7 +214,7 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 							<div class="w3-padding w3-center">
 								<h3><?php echo $strings['169']; ?></h3>
 								<div class="w3-show-inline-block">
-									<input class="w3-check" type="checkbox" value="accept" name="businessTerms">
+									<input class="w3-check" type="checkbox" value="accept" name="businessTerms"<?php if($businessTerms == 'accept') { echo ' checked'; } ?>>
 								</div>
 								<div class="w3-show-inline-block">
 									<?php echo $strings['396']; ?>
