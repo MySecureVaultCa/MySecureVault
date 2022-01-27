@@ -260,9 +260,73 @@ if (initiateSession()) {
 					$sql = "UPDATE users SET cipherSuite='$config[currentCipherSuite]', iv='$encryptedEntry[iv]', entry='$encryptedEntry[data]', tag='$encryptedEntry[tag]' WHERE id='$_SESSION[userId]'";
 					$conn -> query($sql);
 					
+					// Initialize business user
+					$businessUser['name'] = $_SESSION['fullName'];
+					$businessUser['personalQuota'] = 0;
+					$businessUser['businessQuota'] = 0;
+					
+					$jsonEntry = json_encode($businessUser);
+					
+					$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
+					$encryptedEntryIv = $encryptedEntry['iv'];
+					$encryptedEntryData = $encryptedEntry['data'];
+					$encryptedEntryTag = $encryptedEntry['tag'];
+					
+					$sql = "INSERT INTO businessUsers (userId, cipherSuite, iv, entry, tag) VALUES ('$_SESSION[userId]', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]')";
+					$conn -> query($sql);
+					$businessUserId = mysqli_insert_id($conn);
+					
+					
+				
+					// Initialize enterprise admin group
+					$businessGroup['name'] = 'EnterpriseAdmin';
+					$businessGroup['members'] = array($businessUserId);
+					$businessGroup['description'] = $strings['412'];
+					
+					$jsonEntry = json_encode($businessGroup);
+					
+					$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
+					$encryptedEntryIv = $encryptedEntry['iv'];
+					$encryptedEntryData = $encryptedEntry['data'];
+					$encryptedEntryTag = $encryptedEntry['tag'];
+					
+					$sql = "INSERT INTO businessGroups (userId, cipherSuite, iv, entry, tag) VALUES ('$_SESSION[userId]', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]')";
+					$conn -> query($sql);
+					$businessGroupId = mysqli_insert_id($conn);
+					
+					
+					// Initialize root folder
+					/*
+						ACL reference:
+							r = Read permission (implies browse)
+							w = Write permission
+							s = Share permission
+							b = Browse permission
+					*/
+					$businessFolder['name'] = '/';
+					$businessFolder['parentFolder'] = '';
+					$businessFolder['owner'] = $businessUserId;
+					$businessFolder['owningGroup'] = $businessGroupId;
+					$businessFolder['sharedWith'] = array();
+					$businessFolder['acl']['u'] = 'rws';
+					$businessFolder['acl']['g'] = 'rws';
+					$businessFolder['acl']['o'] = 'r';
+					
+					$jsonEntry = json_encode($businessFolder);
+					
+					$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
+					$encryptedEntryIv = $encryptedEntry['iv'];
+					$encryptedEntryData = $encryptedEntry['data'];
+					$encryptedEntryTag = $encryptedEntry['tag'];
+					
+					$sql = "INSERT INTO businessFolders (userId, cipherSuite, iv, entry, tag) VALUES ('$_SESSION[userId]', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]')";
+					$conn -> query($sql);
+					
+					/*
 					$loadContent = false;
 					header("HTTP/1.1 301 Moved Permanently");
 					header("Location: profile.php");
+					*/
 				}
 			}
 			
