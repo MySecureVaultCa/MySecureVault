@@ -531,7 +531,21 @@ ksort($filesArray);
 					
 					include 'leftMenu.php';
 					
-					 ?>
+					if($businessInfo['status'] == 'initialized') {
+				?>
+				
+				<div class="w3-padding">
+					<h3><?php echo $strings['399']; ?></h3>
+					<ul class="w3-ul">
+						<li><b><?php echo $businessInfo['businessName']; ?></b></li>
+						<li><?php echo $businessInfo['businessAddress']; ?><br><?php echo $businessInfo['businessCity']; ?>, <?php echo $businessInfo['businessState']; ?><br><?php echo $businessInfo['businessCountry']; ?></li>
+					</ul>
+				</div>
+				
+				<?php
+					}
+					
+				?>
 				
 				
 			</div>

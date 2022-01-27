@@ -165,6 +165,105 @@ if (initiateSession()) {
 					$backToForm = true;
 					$businessPhoneError = $strings['409'];
 				}
+				
+				if($billingName == '') {
+					$billingName = $businessName;
+				} elseif(strlen($billingName) > 256) {
+					$backToForm = true;
+					$billingNameError = $strings['402'];
+				} elseif(strlen($billingName) < 1) {
+					$backToForm = true;
+					$billingNameError = $strings['401'];
+				}
+				
+				if($billingAddress == '' && $$billingCity == '' && $billingState == '') {
+					$billingAddress = $businessAddress;
+					$billingCity = $businessCity;
+					$billingState = $businessState;
+					$billingCountry = $businessCountry;
+				} else {
+					// Validata all fields individually
+					if(strlen($billingAddress) > 256) {
+						$backToForm = true;
+						$billingAddressError = $strings['404'];
+					} elseif(strlen($billingAddress) < 1) {
+						$backToForm = true;
+						$billingAddressError = $strings['403'];
+					}
+					
+					if(strlen($billingCity) > 256) {
+						$backToForm = true;
+						$billingCityError = $strings['406'];
+					} elseif(strlen($billingCity) < 1) {
+						$backToForm = true;
+						$billingCityError = $strings['405'];
+					}
+					
+					if(strlen($billingState) > 256) {
+						$backToForm = true;
+						$billingStateError = $strings['408'];
+					} elseif(strlen($billingState) < 1) {
+						$backToForm = true;
+						$billingStateError = $strings['407'];
+					}
+					
+					if(!validateCountry($billingCountry)) {
+						$backToForm = true;
+						$billingCountryError = $strings["27"];
+					}
+				}
+				
+				if($billingEmail == '') {
+					$billingEmail = $businessEmail;
+				} elseif(strlen($billingEmail) > 320) {
+					$backToForm = true;
+					$billingEmailError = $strings["24"];
+				} elseif(strlen($billingEmail) < 1) {
+					$backToForm = true;
+					$billingEmailError = $strings["25"];
+				} elseif(!filter_var($billingEmail, FILTER_VALIDATE_EMAIL)) {
+					$backToForm = true;
+					$billingEmailError = $strings["26"];
+				}
+				
+				if($businessTerms != 'accept') {
+					$backToForm = true;
+					$businessTermsError = $strings["411"];
+				}
+				
+				if($backToForm != true) {
+					// All validations successful!
+					
+					// Put all this stuff into an array
+					$businessInfo['businessName'] = $businessName;
+					$businessInfo['businessAddress'] = $businessAddress;
+					$businessInfo['businessCity'] = $businessCity;
+					$businessInfo['businessState'] = $businessState;
+					$businessInfo['businessCountry'] = $businessCountry;
+					$businessInfo['businessEmail'] = $businessEmail;
+					$businessInfo['businessPhone'] = $businessPhone;
+					$businessInfo['billingName'] = $billingName;
+					$businessInfo['billingAddress'] = $billingAddress;
+					$businessInfo['billingCity'] = $billingCity;
+					$businessInfo['billingState'] = $billingState;
+					$businessInfo['billingCountry'] = $billingCountry;
+					$businessInfo['billingEmail'] = $billingEmail;
+					$businessInfo['businessTerms'] = $businessTerms;
+					
+					$jsonEntry = json_encode($businessInfo);
+					
+					$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
+					$encryptedEntryIv = $encryptedEntry['iv'];
+					$encryptedEntryData = $encryptedEntry['data'];
+					$encryptedEntryTag = $encryptedEntry['tag'];
+					
+					$sql = "UPDATE users SET cipherSuite='$config[currentCipherSuite]', iv='$encryptedEntry[iv]', entry='$encryptedEntry[data]', tag='$encryptedEntry[tag]' WHERE id='$_SESSION[userId]'";
+					$conn -> query($sql);
+					
+					$loadContent = false;
+					header("HTTP/1.1 301 Moved Permanently");
+					header("Location: profile.php");
+				}
 			}
 			
 			

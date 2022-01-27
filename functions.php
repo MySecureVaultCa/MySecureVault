@@ -1362,9 +1362,12 @@ function getBusinessInfo($userId) {
 	if(is_null($db_businessInfo['entry']) || $db_businessInfo['entry'] == '') {
 		$businessInfo = array();
 		$businessInfo['status'] = 'uninitialized';
-	} else {
-		$businessInfo['status'] = 'initialized';
+	} else {		
 		// There is info in here... decrypt it and turn it into an array!
+		$jsonBusinessInfo = decryptDataNextGen($db_businessInfo['iv'], $_SESSION['encryptionKey'], $db_businessInfo['entry'], $db_businessInfo['cipherSuite'], $db_businessInfo['tag']);
+		$businessInfo = json_decode($jsonBusinessInfo, true);
+		
+		$businessInfo['status'] = 'initialized';
 	}
 	
 	return $businessInfo;
