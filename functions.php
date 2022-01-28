@@ -1359,7 +1359,7 @@ function getBusinessInfo($userId) {
 	$db_rawBusinessInfo = $conn -> query($sql);
 	$db_businessInfo = $db_rawBusinessInfo -> fetch_assoc();
 	
-	if(is_null($db_businessInfo['entry']) || $db_businessInfo['entry'] == '') {
+	if(mysqli_num_rows($db_rawBusinessInfo) < 1 || is_null($db_businessInfo['entry']) || $db_businessInfo['entry'] == '') {
 		$businessInfo = array();
 		$businessInfo['status'] = 'uninitialized';
 	} else {		
@@ -1371,6 +1371,51 @@ function getBusinessInfo($userId) {
 	}
 	
 	return $businessInfo;
+}
+
+function getBusinessUserInfo($certId) {
+	// This function returns the user's information based on the certificate ID provided
+	global $conn;
+	
+	$sql = "SELECT id, cipherSuite, iv, entry, tag FROM businessUsers WHERE userId='$_SESSION[userId]'";
+	$db_rawUsers = $conn -> query($sql);
+	while ($db_user = $db_rawUsers -> fetch_assoc()) {
+		$jsonUserInfo = decryptDataNextGen($db_user['iv'], $_SESSION['encryptionKey'], $db_user['entry'], $db_user['cipherSuite'], $db_user['tag']);
+		$userInfo = json_decode($jsonUserInfo, true);
+		
+		if(in_array($certId, $userInfo['certs'])) {
+			$businessUser['id'] = $db_user['id'];
+			$businessUser['name'] = $userInfo['name'];
+			$businessUser['personalQuota'] = $userInfo['personalQuota'];
+			$businessUser['businessQuota'] = $userInfo['businessQuota'];
+			$businessUser['certs'] = $userInfo['certs'];
+		}
+	}
+	return $businessUser;	
+}
+
+function getBusinessUserGroups($businessUserId) {
+	// This function returns the database group ID numbers of which a business user account is a member.
+	
+	global $conn;
+	
+	$sql = "SELECT id, userId, cipherSuite, iv, entry, tag FROM businessGroups WHERE userId='$_SESSION[userId]'";
+	$db_rawBusinessGroups = $conn -> query($sql);
+	
+	if(mysqli_num_rows($db_rawBusinessGroups) > 0) {
+		// There are groups... loop through all of them!
+		$groups = array();
+		while($db_businessGroups = $db_rawBusinessGroups -> fetch_assoc()) {
+			$jsonGroup = decryptDataNextGen($db_businessGroups['iv'], $_SESSION['encryptionKey'], $db_businessGroups['entry'], $db_businessGroups['cipherSuite'], $db_businessGroups['tag']);
+			$group = json_decode($jsonGroup, true);
+			if(in_array($businessUserId, $group['members'])) {
+				$groups[] = $db_businessGroups['id'];
+			}
+		}
+		return $groups;
+	} else {
+		return false;
+	}
 }
 
 

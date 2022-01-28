@@ -229,7 +229,17 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 					</div>
 				<?php			
 							} else {
+								// Business account is initialized. For the moment, this is a testing zone!
 								
+								$businessInfo = getBusinessInfo($_SESSION['userId']);
+								$userInfo = getBusinessUserInfo($_SESSION['certId']);
+								$userGroups = getBusinessUserGroups($userInfo['id']);
+								
+								echo '<pre>';
+									var_dump($businessInfo);
+									var_dump($userInfo);
+									var_dump($userGroups);
+								echo '</pre>';
 							}
 						} else {
 							echo 'Standard account';

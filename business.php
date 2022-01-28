@@ -264,6 +264,7 @@ if (initiateSession()) {
 					$businessUser['name'] = $_SESSION['fullName'];
 					$businessUser['personalQuota'] = 0;
 					$businessUser['businessQuota'] = 0;
+					$businessUser['certs'] = array($_SESSION['certId']);
 					
 					$jsonEntry = json_encode($businessUser);
 					
@@ -294,6 +295,21 @@ if (initiateSession()) {
 					$conn -> query($sql);
 					$businessGroupId = mysqli_insert_id($conn);
 					
+					
+					// Initialize billing admin group
+					$businessGroup['name'] = 'BillingAdmin';
+					$businessGroup['members'] = array($businessUserId);
+					$businessGroup['description'] = $strings['413'];
+					
+					$jsonEntry = json_encode($businessGroup);
+					
+					$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
+					$encryptedEntryIv = $encryptedEntry['iv'];
+					$encryptedEntryData = $encryptedEntry['data'];
+					$encryptedEntryTag = $encryptedEntry['tag'];
+					
+					$sql = "INSERT INTO businessGroups (userId, cipherSuite, iv, entry, tag) VALUES ('$_SESSION[userId]', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]')";
+					$conn -> query($sql);
 					
 					// Initialize root folder
 					/*
