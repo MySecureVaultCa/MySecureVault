@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : localhost
--- Généré le : Dim 23 jan. 2022 à 13:46
+-- Généré le : jeu. 27 jan. 2022 à 21:28
 -- Version du serveur :  5.7.36
 -- Version de PHP : 7.3.26
 
@@ -19,7 +19,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Base de données : `mySecureVault`
+-- Base de données : `mySecureVault_dev`
 --
 
 -- --------------------------------------------------------
@@ -95,6 +95,82 @@ INSERT INTO `articles` (`id`, `timestamp`, `page`, `priority`, `parent`, `enTitl
 (70, '2021-01-05 20:16:55', 'faq.php', NULL, 7, 'Why don\'t you offer password capture and replay?', 'Pourquoi n\'offrez-vous pas la capture et relecture de mots de passe?', 'Password capture and replay is an inherently <b>insecure</b> way to handle your passwords, because it requires the use of browser extensions that can be compromised in a variety of ways. Using password managers that use such extensions and techniques is OK, but if you truly value your data, just don\'t use them.<br><br>Some other techniques of capture/replay are increasingly blocked by various websites and applications, and when they are detected, are seen as hacking attempts.<br><br>Being \"The world\'s most secure\", our password manager and digital vault simply cannot offer this type of insecure feature.', 'La capture et relecture de mots de passe est une fa&ccedil;on <b>peu s&eacute;curitaire</b> de g&eacute;rer vos mots de passe, puisqu\'elle requiert l\'utilisation d\'extensions de fureteurs qui peuvent &ecirc;tre compromises de diff&eacute;rentes fa&ccedil;ons. Il est correct d\'utiliser des gestionnaires de mots de passe qui font usages de telles techniques et extensions, mais si vos donn&eacute;es ont une r&eacute;elle valeur pour vous, ne les utilisez pas.<br><br>Certaines techniques de capture/relecture sont bloqu&eacute;es de plus en plus fr&eacute;quemment par diff&eacute;rents sites web et applications, et lorsqu\'elles sont d&eacute;tect&eacute;es, sont vues comme des tentatives de piratage.<br><br>&Eacute;tant \"Le plus s&eacute;curitaire du monde\", notre gestionnaire de mots de passe et coffre-fort num&eacute;rique ne peut simplement pas offrir ce type de fonctionnalit&eacute; peu s&eacute;curitaire.'),
 (71, '2021-01-17 13:59:08', 'faq.php', NULL, NULL, 'Error messages', 'Messages d\'erreur', '', ''),
 (72, '2021-01-17 21:48:36', 'faq.php', NULL, 71, '\"Cannot submit this form. Wrong POST value\"', '\"Impossible de soumettre le formulaire. Valeur de POST incorrecte\"', 'This is a security feature to prevent Cross-Site Request Forgery (CSRF). You may have been browsing MySecureVault.ca with 2 browser windows opened, or you may have submitted the form incorrectly.<br><br><b>Resolution</b><br>\r\nMake sure you browse MySecureVault.ca with only one browser window opened. If you need to browse our site with 2 different windows, use 2 different browsers (Like Chrome and Firefox), or use private browsing tabs.', 'Ceci est une caract&eacute;ristique de s&eacute;curit&eacute; pour emp&ecirc;cher les requ&ecirc;tes forg&eacute;es inter-sites (CSRF - Cross-Site Request Forgery). Il se pourrait que vous ayez navigu&eacute; sur MySecureVault.ca avec 2 fen&ecirc;tres de fureteur ouvertes, ou que vous ayez soumis le formulaire de fa&ccedil;on incorrecte.<br><br><b>R&eacute;solution:</b><br>\r\nAssurez-vous de naviguer sur MySecureVault.ca avec une seule fen&ecirc;tre de fureteur ouverte. Si vous devez naviguer sur notre site avec 2 fen&ecirc;tres diff&eacute;rente, utilisez 2 fureteurs diff&eacute;rents (Comme Chrome et Firefox), ou encore utilisez des onglets de navigation priv&eacute;s.');
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `businessEntries`
+--
+
+CREATE TABLE `businessEntries` (
+  `id` int(9) UNSIGNED NOT NULL,
+  `userId` int(9) UNSIGNED NOT NULL,
+  `businessFolderId` int(9) UNSIGNED NOT NULL,
+  `cipherSuite` varchar(64) CHARACTER SET utf8 NOT NULL,
+  `iv` varchar(64) CHARACTER SET utf8 NOT NULL,
+  `entry` mediumtext CHARACTER SET utf8 NOT NULL,
+  `tag` varchar(64) CHARACTER SET utf8 NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `businessFiles`
+--
+
+CREATE TABLE `businessFiles` (
+  `id` int(9) UNSIGNED NOT NULL,
+  `businessEntryId` int(9) UNSIGNED NOT NULL,
+  `cipherSuite` varchar(64) NOT NULL,
+  `iv` varchar(64) NOT NULL,
+  `entry` mediumtext NOT NULL,
+  `tag` varchar(64) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `businessFolders`
+--
+
+CREATE TABLE `businessFolders` (
+  `id` int(9) UNSIGNED NOT NULL,
+  `userId` int(9) UNSIGNED NOT NULL,
+  `cipherSuite` varchar(64) CHARACTER SET utf8 NOT NULL,
+  `iv` varchar(64) CHARACTER SET utf8 NOT NULL,
+  `entry` mediumtext CHARACTER SET utf8 NOT NULL,
+  `tag` varchar(64) CHARACTER SET utf8 NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `businessGroups`
+--
+
+CREATE TABLE `businessGroups` (
+  `id` int(9) UNSIGNED NOT NULL,
+  `userId` int(9) UNSIGNED NOT NULL,
+  `cipherSuite` varchar(64) NOT NULL,
+  `iv` varchar(64) NOT NULL,
+  `entry` mediumtext NOT NULL,
+  `tag` varchar(64) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `businessUsers`
+--
+
+CREATE TABLE `businessUsers` (
+  `id` int(9) UNSIGNED NOT NULL,
+  `userId` int(9) UNSIGNED NOT NULL,
+  `cipherSuite` varchar(64) CHARACTER SET utf8 NOT NULL,
+  `iv` varchar(64) CHARACTER SET utf8 NOT NULL,
+  `entry` mediumtext CHARACTER SET utf8 NOT NULL,
+  `tag` varchar(64) CHARACTER SET utf8 NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
 
@@ -227,7 +303,7 @@ INSERT INTO `langStrings` (`id`, `en`, `fr`, `comment`) VALUES
 (18, 'Type your information in the above form then click the \"Generate certificate\" button', 'Entrez vos informations dans le formulaire et cliquez sur \"G&eacute;n&eacute;rer le certificat\"', NULL),
 (19, 'Download the certificate file in a safe folder', 'T&eacute;l&eacute;chargez le fichier de certificat dans un dossier s&eacute;curitaire', NULL),
 (20, 'Login by selecting the downloaded certificate file and typing the passphrase in the \"Secure certificate authentication\" form', 'Ouvrez une session en choisissant le certificat t&eacute;l&eacute;charg&eacute; et en indiquant la phrase secr&egrave;te dans le formulaire \"Authentification s&eacute;curis&eacute;e par certificat\"', NULL),
-(21, 'KEEP THE CERTIFICATE FILE IN A SAFE PLACE AND BACK IT UP! If you lose it, you will no longer be able to access your data here', 'GARDEZ LE FICHIER DE CERTIFICAT DANS UN ENDROIT S&Ucirc;R ET SAUVEGARDEZ-LE! Si vous le perdez, vous perdrez acc&egrave; &agrave;s vos donn&eacute;es enregistr&eacute; ici', NULL),
+(21, 'KEEP THE CERTIFICATE FILE IN A SAFE PLACE AND BACK IT UP! If you lose it, you will no longer be able to access your data here', 'GARDEZ LE FICHIER DE CERTIFICAT DANS UN ENDROIT S&Ucirc;R ET SAUVEGARDEZ-LE! Si vous le perdez, vous perdrez acc&egrave;s &agrave; vos donn&eacute;es enregistr&eacute;es ici', NULL),
 (22, 'Your full name cannot be more than 256 characters', 'Le nom complet ne peut avoir plus de 256 caract&egrave;res', NULL),
 (23, 'You must enter your full name', 'Vous devez saisir votre nom complet', NULL),
 (24, 'Your email address cannot be more than 320 characters', 'L\'adresse courriel ne peut avoir plus de 320 caract&egrave;res', NULL),
@@ -554,7 +630,69 @@ INSERT INTO `langStrings` (`id`, `en`, `fr`, `comment`) VALUES
 (349, 'once', '1 fois', NULL),
 (350, 'times', 'fois', NULL),
 (351, 'Cannot submit this form. Wrong POST value.', 'Impossible de soumettre le formulaire. Valeur de POST incorrecte.', NULL),
-(352, 'You must tell the recipient the passphrase you set to access the download, and if you sent a certificate download link, tell what the certificate passphrase is (they may be different).<br><br>\r\n<b>Make sure the recipient checks in the spam folder, just in case.</b>', 'Vous devez communiquer au destinataire la phrase secr&egrave;te que vous avez choisie pour le t&eacute;l&eacute;chargement, et si vous lui avez envoy&eacute; un lien pour t&eacute;l&eacute;charger un fichier de certificat, dites-lui quelle est la phrase secr&egrave;te pour le certificat (elles peuvent &ecirc;tre diff&eacute;rentes)<br><br>\r\n<b>Assurez-vous que le destinataire v&eacute;rifie son courrier ind&eacute;sirable, juste au cas o&ugrave;.</b>', NULL);
+(352, 'You must tell the recipient the passphrase you set to access the download, and if you sent a certificate download link, tell what the certificate passphrase is (they may be different).<br><br>\r\n<b>Make sure the recipient checks in the spam folder, just in case.</b>', 'Vous devez communiquer au destinataire la phrase secr&egrave;te que vous avez choisie pour le t&eacute;l&eacute;chargement, et si vous lui avez envoy&eacute; un lien pour t&eacute;l&eacute;charger un fichier de certificat, dites-lui quelle est la phrase secr&egrave;te pour le certificat (elles peuvent &ecirc;tre diff&eacute;rentes)<br><br>\r\n<b>Assurez-vous que le destinataire v&eacute;rifie son courrier ind&eacute;sirable, juste au cas o&ugrave;.</b>', NULL),
+(353, 'Plans and pricing', 'Forfaits et tarifs', NULL),
+(354, 'MySecureVault plans and pricing', 'Forfaits et tarifs MySecureVault', NULL),
+(355, 'Subscribe to a business plan for MySecureVault to get advanced business features for the most secure password manager in the World.', 'Souscrivez &agrave; un forfait affaire de MySecureVault pour obtenir des fonctionnalit&eacute;s avanc&eacute;es de niveau entreprise avec le gestionnaire de mots de passe le plus s&eacute;curitaire du monde.', NULL),
+(356, 'MySecureVault, password manager, php, mysql, business plans', 'MySecureVault, gestionnaire de mots de passe, php, mysql, forfaits affaire', NULL),
+(357, 'Free edition', '&Eacute;dition gratuite', NULL),
+(358, 'Enterprise edition', '&Eacute;dition entreprise', NULL),
+(359, 'Free', 'Gratuit', NULL),
+(360, 'Forever', 'Pour toujours', NULL),
+(361, 'per user / month (USD)', 'par utilisateur / mois (USD)', NULL),
+(362, '<b>Secure</b> certificate authentication', 'Authentification <b>s&eacute;curis&eacute;e</b> par certificat', NULL),
+(363, '<b>Unlimited</b> certificates in each account', 'Nombre de certificats <b>illimit&eacute;</b> dans chaque compte', NULL),
+(364, 'Mobile, tablet, PC and Mac <b>friendly</b>', '<b>Compatible</b> mobile, tablette, PC et Mac', NULL),
+(365, 'Universal browser support, no extension required', 'Tous fureteurs support&eacute;s, aucune extension requise', NULL),
+(366, 'Secure <b>data sharing</b> by email', '<b>Partage de donn&eacute;es</b> s&eacute;curis&eacute; par courriel', NULL),
+(367, '<b>Military-grade</b> encrypted database', 'Base de donn&eacute;es chiffr&eacute;e de <b>niveau militaire</b>', NULL),
+(368, '100MB free storage*', '100Mo de stockage gratuit*', NULL),
+(369, 'All the Free Edition features, plus...', 'Toutes les fonctionnalit&eacute;s de l\'&eacute;dition gratuite, plus...', NULL),
+(370, 'Users, groups and roles management', 'Gestion d\'utilisateurs, groupes et r&ocirc;les', NULL),
+(371, 'Organize your data in <b>folders and tags</b>', 'Organisez vos donn&eacute;es &agrave; l\'aide de <b>dossiers et &eacute;tiquettes</b>', NULL),
+(372, 'Privileged email <b>tech support</b>', '<b>Support technique</b> privil&eacute;gi&eacute; par courriel', NULL),
+(373, '<b>1GB</b> data storage per user **', '<b>1Go</b> de stockage de donn&eacute;es par utilisateur **', NULL),
+(374, 'Encrypted data takes more space than unencrypted data. Data usage is calculated on the encrypted data.', 'Les donn&eacute;es chiffr&eacute;es occupent plus d\'espace que les donn&eacute; non chiffr&eacute;es. L\'utilisation est calcul&eacute;e sur les donn&eacute;es chiffr&eacute;es.', NULL),
+(375, 'Encrypted data takes more space than unencrypted data. Data usage is calculated on the encrypted data. Total storage space of your enterprise plan is the addition of all the users you are paying for. For example, if you pay for 10 users per month, you can store up to 10GB of encrypted data.', 'Les donn&eacute;es chiffr&eacute;es occupent plus d\'espace que les donn&eacute; non chiffr&eacute;es. L\'utilisation est calcul&eacute;e sur les donn&eacute;es chiffr&eacute;es. L\'espace de stockage total de votre compte entreprise est l\'addition de tous les utilisateurs pour lesquels vous payez. Par exemple, si vous payez pour 10 utilisateurs par mois, vous pouvez stocker jusqu\'&agrave; 10Go de donn&eacute;es chiffr&eacute;es', NULL),
+(376, 'Personal storage space for each user', 'Espace de stockage personnel pour chaque utilisateur', NULL),
+(377, 'The account you create now will be the organization administrator. Keep the certificate on a secure medium, and make sure you do not lose it or let it expire before you issue a new one. Otherwise, you may lose access to all of your organization data!', 'Le compte que vous cr&eacute;erez ici sera administrateur de l\'organisation. Conservez le certificat sur un stockage s&eacute;curitaire, et assurez-vous que vous ne le perdez pas ni ne le laissez expirer avant d\'en avoir &eacute;mis un nouveau. Autrement, vous pourriez perdre l\'acc&egrave;s &agrave; toutes vos donn&eacute;es d\'organisation!', NULL),
+(378, 'Your Enterprise account has not yet been initialized. <a href=\"/business.php\">Click here</a> to complete your business profile and subscribe to an Enterprise Plan.', 'Votre compte Entreprise n\'a pas encore &eacute;t&eacute; initialis&eacute;. <a href=\"/business.php\">Cliquez ici</a> pour compl&eacute;ter votre profil d\'entreprise et pour souscrire &agrave; un forfait Entreprise.', NULL),
+(379, 'Business registration form', 'Formulaire d\'enregistrement d\'entreprise', NULL),
+(380, 'Before you subscribe to an Enterprise plan, you must fill out the following form with accurate information about your business, so we can invoice you properly.', 'Avant de souscrire &agrave; un forfait Entreprise, vous devez entrer les renseignements demand&eacute;s correctement afin que nous puissions vous facturer.', NULL),
+(381, 'Business information', 'Informations d\'entreprise', NULL),
+(382, 'Billing information', 'Facturation', NULL),
+(383, 'Business name', 'Nom de l\'entreprise', NULL),
+(384, 'Street address', 'Adresse civique', NULL),
+(385, 'Phone number', 'T&eacute;l&eacute;phone', NULL),
+(386, 'Main email address', 'Adresse courriel principale', NULL),
+(387, 'Billing name', 'Nom de facturation', NULL),
+(388, 'Leave empty if same as business name', 'Laisser vide si identique au nom de l\'entreprise', NULL),
+(389, 'This information must match that of your payment method', 'Ces renseignements doivent concorder avec ceux de votre moyen de paiement', NULL),
+(390, 'Billing address', 'Adresse de facturation', NULL),
+(391, 'Leave empty if same as business address', 'Laisser vide si identique &agrave; l\'adresse de l\'entreprise', NULL),
+(392, 'Leave empty if same as business city', 'Laisser vide si identique &agrave; la ville de l\'entreprise', NULL),
+(393, 'Leave empty if same as business state', 'Laisser vide si identique &agrave; l\'&eacute;tat / province de l\'entreprise', NULL),
+(394, 'Email address where invoices are sent', 'Adresse courriel o&ugrave; sont envoy&eacute;es les factures', NULL),
+(395, 'Leave empty if same as business email address', 'Laisser vide si identique &agrave; l\'adresse courriel de l\'entreprise', NULL),
+(396, 'By checking this box, I confirm that I have read, and that I fully accept, the <a href=\"/terms.php\">Terms of use</a>.', 'En cochant cette case, je confirme que j\'ai lu, et que j\'accepte pleinement, les <a href=\"/terms.php\">Conditions d\'utilisation</a>.', NULL);
+INSERT INTO `langStrings` (`id`, `en`, `fr`, `comment`) VALUES
+(397, 'Save business information', 'Enregistrer les informations d\'entreprise', NULL),
+(398, 'Free account', 'Compte gratuit', NULL),
+(399, 'Enterprise account', 'Compte entreprise', NULL),
+(400, 'Starting at', '&Agrave; partir de', NULL),
+(401, 'You must provide your business name<div class=\"w3-tiny\">(You can provide your full name if you register for yourself)</div>', 'Vous devez fournir le nom de votre entreprise<div class=\"w3-tiny\">(Vous pouvez saisir votre nom complet si vous vous enregistrez pour vous-m&ecirc;me)</div>', NULL),
+(402, 'Please limit your business name to 256 characters', 'Veuillez limiter le nom de l\'entreprise &agrave; 256 caract&egrave;res', NULL),
+(403, 'You must provide an address', 'Vous devez fournir une adresse', NULL),
+(404, 'Please limit the address to 256 characters', 'Veuillez limiter l\'adresse &agrave; 256 caract&egrave;res', NULL),
+(405, 'You must provide a city', 'Vous devez fournir une ville', NULL),
+(406, 'Please limit the city to 256 characters', 'Veuillez limiter la ville &agrave; 256 caract&egrave;res', NULL),
+(407, 'You must provide a state or province', 'Vous devez fournir une province / &eacute;tat', NULL),
+(408, 'Please limit the state or province to 256 characters', 'Veuillez limiter la province / &eacute;tat &agrave; 256 caract&egrave;res', NULL),
+(409, 'You must provide a phone number', 'Vous devez fournir un num&eacute;ro de t&eacute;l&eacute;phone', NULL),
+(410, 'Please limit the phone number to 30 characters', 'Veuillez limiter le num&eacute;ro de t&eacute;l&eacute;phone &agrave; 30 caract&egrave;res', NULL),
+(411, 'You must read and accept the Terms of use before completing your business registration', 'Vous devez lire et accepter les Conditions d\'utilisation avant de compl&eacute;ter l\'enregistrement de votre entreprise', NULL),
+(412, 'Members of this group have all the rights in the organization. Please use responsibly.', 'Les membres de ce groupe ont tous les droits dans l\'organisation. Utilisez de fa&ccedil;on responsable.', NULL),
+(413, 'Members of this group can manage billing information and licences.', 'Les membres de ce groupe peuvent g&eacute;rer les renseignements de facturation et les licences.', NULL);
 
 -- --------------------------------------------------------
 
@@ -594,7 +732,12 @@ CREATE TABLE `torExitNodes` (
 CREATE TABLE `users` (
   `id` int(9) UNSIGNED NOT NULL,
   `registrationTime` datetime NOT NULL,
-  `lastAccess` datetime DEFAULT NULL
+  `lastAccess` datetime DEFAULT NULL,
+  `businessAccount` int(1) DEFAULT NULL,
+  `cipherSuite` varchar(64) DEFAULT NULL,
+  `iv` varchar(64) DEFAULT NULL,
+  `entry` mediumtext,
+  `tag` varchar(64) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
@@ -606,6 +749,42 @@ CREATE TABLE `users` (
 --
 ALTER TABLE `articles`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Index pour la table `businessEntries`
+--
+ALTER TABLE `businessEntries`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `businessEntries_userId` (`userId`),
+  ADD KEY `businessEntries_folderId` (`businessFolderId`);
+
+--
+-- Index pour la table `businessFiles`
+--
+ALTER TABLE `businessFiles`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `businessFiles_businessEntries` (`businessEntryId`);
+
+--
+-- Index pour la table `businessFolders`
+--
+ALTER TABLE `businessFolders`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `businessFolders_userId` (`userId`);
+
+--
+-- Index pour la table `businessGroups`
+--
+ALTER TABLE `businessGroups`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `businessGroups_userId` (`userId`);
+
+--
+-- Index pour la table `businessUsers`
+--
+ALTER TABLE `businessUsers`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `businessUser_userId` (`userId`);
 
 --
 -- Index pour la table `certs`
@@ -678,46 +857,76 @@ ALTER TABLE `articles`
   MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=73;
 
 --
+-- AUTO_INCREMENT pour la table `businessEntries`
+--
+ALTER TABLE `businessEntries`
+  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `businessFiles`
+--
+ALTER TABLE `businessFiles`
+  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `businessFolders`
+--
+ALTER TABLE `businessFolders`
+  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
+-- AUTO_INCREMENT pour la table `businessGroups`
+--
+ALTER TABLE `businessGroups`
+  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT pour la table `businessUsers`
+--
+ALTER TABLE `businessUsers`
+  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+
+--
 -- AUTO_INCREMENT pour la table `certs`
 --
 ALTER TABLE `certs`
-  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT pour la table `downloadLinks`
 --
 ALTER TABLE `downloadLinks`
-  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT pour la table `encryptionKeys`
 --
 ALTER TABLE `encryptionKeys`
-  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT pour la table `entries`
 --
 ALTER TABLE `entries`
-  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT pour la table `files`
 --
 ALTER TABLE `files`
-  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT pour la table `langStrings`
 --
 ALTER TABLE `langStrings`
-  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=353;
+  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=414;
 
 --
 -- AUTO_INCREMENT pour la table `sessions`
 --
 ALTER TABLE `sessions`
-  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=68;
 
 --
 -- AUTO_INCREMENT pour la table `torExitNodes`
@@ -729,11 +938,42 @@ ALTER TABLE `torExitNodes`
 -- AUTO_INCREMENT pour la table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- Contraintes pour les tables déchargées
 --
+
+--
+-- Contraintes pour la table `businessEntries`
+--
+ALTER TABLE `businessEntries`
+  ADD CONSTRAINT `businessEntries_folderId` FOREIGN KEY (`businessFolderId`) REFERENCES `businessFolders` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `businessEntries_userId` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `businessFiles`
+--
+ALTER TABLE `businessFiles`
+  ADD CONSTRAINT `businessFiles_businessEntries` FOREIGN KEY (`businessEntryId`) REFERENCES `businessEntries` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `businessFolders`
+--
+ALTER TABLE `businessFolders`
+  ADD CONSTRAINT `businessFolders_userId` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `businessGroups`
+--
+ALTER TABLE `businessGroups`
+  ADD CONSTRAINT `businessGroups_userId` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `businessUsers`
+--
+ALTER TABLE `businessUsers`
+  ADD CONSTRAINT `businessUser_userId` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `certs`
