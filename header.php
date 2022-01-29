@@ -48,6 +48,47 @@
 					';
 				}
 			?>
+			<!-- BUSINESS Button-->
+			<?php
+				$businessInfo = getBusinessInfo($_SESSION['userId']);
+				if($businessInfo['status'] != 'initialized') {
+			?>
+			<a style="padding: 15px!important;" class="w3-bar-item w3-button w3-large w3-border-top w3-hover-blue" href="business.php">
+				<i class="fa fa-credit-card w3-hover-blue">
+					<span style="font-family: arial;"> <?php echo $strings['353'] ?></span>
+				</i>
+			</a>
+			<?php
+				} else {
+					// Business is initialized... Check user rights on this business!
+					$effectivePermission = getBusinessManagementPermissions();
+					if($effectivePermission['billing'] == 'rw') {
+						// User can manage billing and licenses. Show button accordingly!
+			?>
+			<a style="padding: 15px!important;" class="w3-bar-item w3-button w3-large w3-border-top w3-hover-blue" href="billing.php">
+				<i class="fa fa-barcode w3-hover-blue">
+					<span style="font-family: arial;"> <?php echo $strings['414'] ?></span>
+				</i>
+			</a>
+			<?php
+					}
+					if($effectivePermission['business'] == 'rw') {
+						// User can manage business information. Show button accordingly!
+			?>
+			<a style="padding: 15px!important;" class="w3-bar-item w3-button w3-large w3-border-top w3-hover-blue" href="business.php">
+				<i class="fa fa-building w3-hover-blue">
+					<span style="font-family: arial;"> <?php echo $strings['415'] ?></span>
+				</i>
+			</a>
+			<a style="padding: 15px!important;" class="w3-bar-item w3-button w3-large w3-border-top w3-hover-blue" href="usersAndGroups.php">
+				<i class="fa fa-users w3-hover-blue">
+					<span style="font-family: arial;"> <?php echo $strings['416'] ?></span>
+				</i>
+			</a>
+			<?php
+					}
+				}
+			?>
 			<!-- FAQ Button -->
 			<a style="padding: 15px!important;" class="w3-bar-item w3-button w3-large w3-border-top w3-hover-blue" href="faq.php">
 				<i class="fa fa-question-circle w3-hover-blue">
@@ -58,12 +99,6 @@
 			<a style="padding: 15px!important;" class="w3-bar-item w3-button w3-large w3-border-top w3-hover-blue" href="about.php">
 				<i class="fa fa-info-circle w3-hover-blue">
 					<span style="font-family: arial;"> <?php echo $strings['133'] ?></span>
-				</i>
-			</a>
-			<!-- BUSINESS Button-->
-			<a style="padding: 15px!important;" class="w3-bar-item w3-button w3-large w3-border-top w3-hover-blue" href="business.php">
-				<i class="fa fa-credit-card w3-hover-blue">
-					<span style="font-family: arial;"> <?php echo $strings['353'] ?></span>
 				</i>
 			</a>
 			<!-- LANGUAGE -->

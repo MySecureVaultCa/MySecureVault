@@ -1418,6 +1418,36 @@ function getBusinessUserGroups($businessUserId) {
 	}
 }
 
+function getBusinessManagementPermissions() {
+	$businessInfo = getBusinessInfo($_SESSION['userId']);
+	$businessUser = getBusinessUserInfo($_SESSION['certId']);
+	$businessUserGroups = getBusinessUserGroups($businessUser['id']);
+	
+	if($businessInfo['businessOwner'] == $businessUser['id'])   {
+		// This is the business owner... welcome in my lord...
+		// Grab permission on the object
+		$effectivePermission['business'] = $businessInfo['businessAcl']['u'];
+	} elseif(in_array($businessInfo['businessOwningGroup'], $businessUserGroups)) {
+		// User is in the owning group
+		$effectivePermission['business'] = $businessInfo['businessAcl']['g'];
+	} else {
+		$effectivePermission['business'] = $businessInfo['businessAcl']['g'];
+	}
+	
+	if($businessInfo['billingOwner'] == $businessUser['id'])   {
+		// This is the billing owner... welcome in my lord...
+		// Grab permission on the object
+		$effectivePermission['billing'] = $businessInfo['billingAcl']['u'];
+	} elseif(in_array($businessInfo['billingOwningGroup'], $businessUserGroups)) {
+		// User is in the owning group
+		$effectivePermission['billing'] = $businessInfo['billingAcl']['g'];
+	} else {
+		$effectivePermission['billing'] = $businessInfo['billingAcl']['g'];
+	}
+	
+	return $effectivePermission;
+}
+
 
 
 /// ****************** DEBUG CODE **********************

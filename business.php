@@ -234,32 +234,6 @@ if (initiateSession()) {
 				if($backToForm != true) {
 					// All validations successful!
 					
-					// Put all this stuff into an array
-					$businessInfo['businessName'] = $businessName;
-					$businessInfo['businessAddress'] = $businessAddress;
-					$businessInfo['businessCity'] = $businessCity;
-					$businessInfo['businessState'] = $businessState;
-					$businessInfo['businessCountry'] = $businessCountry;
-					$businessInfo['businessEmail'] = $businessEmail;
-					$businessInfo['businessPhone'] = $businessPhone;
-					$businessInfo['billingName'] = $billingName;
-					$businessInfo['billingAddress'] = $billingAddress;
-					$businessInfo['billingCity'] = $billingCity;
-					$businessInfo['billingState'] = $billingState;
-					$businessInfo['billingCountry'] = $billingCountry;
-					$businessInfo['billingEmail'] = $billingEmail;
-					$businessInfo['businessTerms'] = $businessTerms;
-					
-					$jsonEntry = json_encode($businessInfo);
-					
-					$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
-					$encryptedEntryIv = $encryptedEntry['iv'];
-					$encryptedEntryData = $encryptedEntry['data'];
-					$encryptedEntryTag = $encryptedEntry['tag'];
-					
-					$sql = "UPDATE users SET cipherSuite='$config[currentCipherSuite]', iv='$encryptedEntry[iv]', entry='$encryptedEntry[data]', tag='$encryptedEntry[tag]' WHERE id='$_SESSION[userId]'";
-					$conn -> query($sql);
-					
 					// Initialize business user
 					$businessUser['name'] = $_SESSION['fullName'];
 					$businessUser['personalQuota'] = 0;
@@ -293,7 +267,7 @@ if (initiateSession()) {
 					
 					$sql = "INSERT INTO businessGroups (userId, cipherSuite, iv, entry, tag) VALUES ('$_SESSION[userId]', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]')";
 					$conn -> query($sql);
-					$businessGroupId = mysqli_insert_id($conn);
+					$enterpriseAdminGroupId = mysqli_insert_id($conn);
 					
 					
 					// Initialize billing admin group
@@ -310,6 +284,7 @@ if (initiateSession()) {
 					
 					$sql = "INSERT INTO businessGroups (userId, cipherSuite, iv, entry, tag) VALUES ('$_SESSION[userId]', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]')";
 					$conn -> query($sql);
+					$billingAdminGroupId = mysqli_insert_id($conn);
 					
 					// Initialize root folder
 					/*
@@ -336,6 +311,43 @@ if (initiateSession()) {
 					$encryptedEntryTag = $encryptedEntry['tag'];
 					
 					$sql = "INSERT INTO businessFolders (userId, cipherSuite, iv, entry, tag) VALUES ('$_SESSION[userId]', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]')";
+					$conn -> query($sql);
+					
+					// Finish with business information
+					$businessInfo['businessName'] = $businessName;
+					$businessInfo['businessAddress'] = $businessAddress;
+					$businessInfo['businessCity'] = $businessCity;
+					$businessInfo['businessState'] = $businessState;
+					$businessInfo['businessCountry'] = $businessCountry;
+					$businessInfo['businessEmail'] = $businessEmail;
+					$businessInfo['businessPhone'] = $businessPhone;
+					$businessInfo['businessOwner'] = $businessUserId;
+					$businessInfo['businessOwningGroup'] = $enterpriseAdminGroupId;
+					$businessInfo['businessAcl']['u'] = 'rw';
+					$businessInfo['businessAcl']['g'] = 'rw';
+					$businessInfo['businessAcl']['o'] = 'r';
+					$businessInfo['billingName'] = $billingName;
+					$businessInfo['billingAddress'] = $billingAddress;
+					$businessInfo['billingCity'] = $billingCity;
+					$businessInfo['billingState'] = $billingState;
+					$businessInfo['billingCountry'] = $billingCountry;
+					$businessInfo['billingEmail'] = $billingEmail;
+					$businessInfo['billingOwner'] = $businessUserId;
+					$businessInfo['billingOwningGroup'] = $billingAdminGroupId;
+					$businessInfo['billingAcl']['u'] = 'rw';
+					$businessInfo['billingAcl']['g'] = 'rw';
+					$businessInfo['billingAcl']['o'] = '';
+					$businessInfo['businessTerms'] = $businessTerms;
+					
+					
+					$jsonEntry = json_encode($businessInfo);
+					
+					$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
+					$encryptedEntryIv = $encryptedEntry['iv'];
+					$encryptedEntryData = $encryptedEntry['data'];
+					$encryptedEntryTag = $encryptedEntry['tag'];
+					
+					$sql = "UPDATE users SET cipherSuite='$config[currentCipherSuite]', iv='$encryptedEntry[iv]', entry='$encryptedEntry[data]', tag='$encryptedEntry[tag]' WHERE id='$_SESSION[userId]'";
 					$conn -> query($sql);
 					
 					/*
