@@ -1423,29 +1423,164 @@ function getBusinessManagementPermissions() {
 	$businessUser = getBusinessUserInfo($_SESSION['certId']);
 	$businessUserGroups = getBusinessUserGroups($businessUser['id']);
 	
-	if($businessInfo['businessOwner'] == $businessUser['id'])   {
+	if($businessInfo['business']['owner'] == $businessUser['id'])   {
 		// This is the business owner... welcome in my lord...
 		// Grab permission on the object
-		$effectivePermission['business'] = $businessInfo['businessAcl']['u'];
-	} elseif(in_array($businessInfo['businessOwningGroup'], $businessUserGroups)) {
+		$effectivePermission['business'] = $businessInfo['business']['acl']['u'];
+	} elseif(in_array($businessInfo['business']['owningGroup'], $businessUserGroups)) {
 		// User is in the owning group
-		$effectivePermission['business'] = $businessInfo['businessAcl']['g'];
+		$effectivePermission['business'] = $businessInfo['business']['acl']['g'];
 	} else {
-		$effectivePermission['business'] = $businessInfo['businessAcl']['g'];
+		// Get permission for "other"
+		$effectivePermission['business'] = $businessInfo['business']['acl']['o'];
 	}
 	
-	if($businessInfo['billingOwner'] == $businessUser['id'])   {
+	if($businessInfo['billing']['owner'] == $businessUser['id'])   {
 		// This is the billing owner... welcome in my lord...
 		// Grab permission on the object
-		$effectivePermission['billing'] = $businessInfo['billingAcl']['u'];
-	} elseif(in_array($businessInfo['billingOwningGroup'], $businessUserGroups)) {
+		$effectivePermission['billing'] = $businessInfo['billing']['acl']['u'];
+	} elseif(in_array($businessInfo['billing']['owningGroup'], $businessUserGroups)) {
 		// User is in the owning group
-		$effectivePermission['billing'] = $businessInfo['billingAcl']['g'];
+		$effectivePermission['billing'] = $businessInfo['billing']['acl']['g'];
 	} else {
-		$effectivePermission['billing'] = $businessInfo['billingAcl']['g'];
+		// Get permission for "other"
+		$effectivePermission['billing'] = $businessInfo['billing']['acl']['o'];
+	}
+	
+	if($businessInfo['users']['owner'] == $businessUser['id'])   {
+		// This is the users owner... welcome in my lord...
+		// Grab permission on the object
+		$effectivePermission['users'] = $businessInfo['users']['acl']['u'];
+	} elseif(in_array($businessInfo['users']['owningGroup'], $businessUserGroups)) {
+		// User is in the owning group
+		$effectivePermission['users'] = $businessInfo['users']['acl']['g'];
+	} else {
+		// Get permission for "other"
+		$effectivePermission['users'] = $businessInfo['users']['acl']['o'];
 	}
 	
 	return $effectivePermission;
+}
+
+function logAction($messageId){
+	global $config;
+	global $conn;
+	date_default_timezone_set('UTC');
+	$originalMessageId = $messageId;
+	/*
+		Facility values used in the app:
+			1 - User level messages
+			10 - PRIVATE Security / authorization message (login, logout, failed login, attempt unauthorized action)
+			13 - Audit / action logging
+			14 - Alert
+		
+		Severity values:
+			0 - Emergency: system is unusable
+            1 - Alert: action must be taken immediately
+            2 - Critical: critical conditions
+            3 - Error: error conditions
+            4 - Warning: warning conditions
+            5 - Notice: normal but significant condition
+            6 - Informational: informational messages
+            7 - Debug: debug-level messages
+	*/
+	
+	// Get message from database
+	
+	$sql = "SELECT id, facility, severity, message FROM businessLogMessages WHERE id='$messageId'";
+	$db_rawMessage = $conn -> query($sql);
+	if(mysqli_num_rows($db_rawMessage) == 1) {
+		// Message ID is good. extract it.
+		$db_message = $db_rawMessage -> fetch_assoc();
+		$facility = $db_message["facility"];
+		$severity = $db_message["severity"];
+		$messageContent = $db_message["message"];
+		
+	} else {
+		
+		// This message does not exist. Log an application error (Facility 5, severity 3).
+		$sql = "SELECT id, facility, severity, message FROM businessLogMessages WHERE id='1'";
+		$db_rawMessage = $conn -> query($sql);
+		$db_message = $db_rawMessage -> fetch_assoc();
+		$messageId = '1';
+		$facility = $db_message["facility"];
+		$severity = $db_message["severity"];
+		$messageContent = $db_message["message"];
+		
+	}
+	
+	$priValue = ($facility * 8) + $severity;
+	$version = '1';
+	$timestamp = date("Y-m-d\\TH:i:s") . '.00Z';
+	
+	$businessUserInfo = getBusinessUserInfo($_SESSION['certId']);
+	
+	$messageArray['clientIpAddress'] = $_SERVER['REMOTE_ADDR'];
+	$messageArray['page'] = $_SERVER['REQUEST_URI'];
+	$messageArray['businessId'] = $_SESSION['userId'];
+	$messageArray['businessUserId'] = $businessUserInfo['id'];
+	$messageArray['businessUserName'] = $businessUserInfo['name'];
+	$messageArray['originalMessageId'] = $originalMessageId;
+	$messageArray['actualMessageId'] = $messageId;
+	$messageArray['messageContent'] = $messageContent;
+	
+	$message = json_encode($messageArray);
+	
+	if (strlen($message) > $config['syslogMaxMessageLength']) {
+		// Syslog message is TOO LONG! Change message information...
+		$sql = "SELECT id, facility, severity, message FROM businessLogMessages WHERE id='2'";
+		$db_rawMessage = $conn -> query($sql);
+		$db_message = $db_rawMessage -> fetch_assoc();
+		$messageId = '2';
+		$facility = $db_message["facility"];
+		$severity = $db_message["severity"];
+		$messageArray['originalMessageExcerpt'] = substr($messageContent, 0, $config['syslogExcerptLength']);
+		$messageContent = $db_message["message"];
+		$messageArray['actualMessageId'] = '2';
+		$messageArray['messageContent'] = $messageContent;
+		
+		$message = json_encode($messageArray);
+	}
+	
+	// Encrypt log message before insert
+	$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $message, $config['currentCipherSuite']);
+	$encryptedEntryIv = $encryptedEntry['iv'];
+	$encryptedEntryData = $encryptedEntry['data'];
+	$encryptedEntryTag = $encryptedEntry['tag'];
+	
+	$sql = "INSERT INTO businessSyslog (userId, cipherSuite, iv, entry, tag) VALUES ('$_SESSION[userId]', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]')";
+	/*if ($conn->query($sql) === true) {
+	echo 'OK';
+} else {
+	echo $conn->error;
+} */
+	
+	
+	$conn -> query($sql);
+	$syslogEntryId = mysqli_insert_id($conn);
+	
+	// Get ID and checksum of last log row
+	$sql = "SELECT (id, checksum) FROM businessSyslog WHERE userId='$_SESSION[userId]' AND checksum IS NOT NULL ORDER BY id DESC LIMIT 1";
+	$db_rawSyslogEntry = $conn -> query($sql);
+	if(mysqli_num_rows($db_rawSyslogEntry) > 0) {
+		$db_syslogEntry = $db_rawSyslogEntry -> fetch_assoc();
+		// Not the first entry, add hash from last entry
+		$entryHashString = $config['salt'] . $syslogEntryId . $message . $db_syslogEntry['checksum'];
+	} else {
+		// This is the first entry! Generate first hash
+		$entryHashString = $config['salt'] . $syslogEntryId . $message;
+	}
+	
+	$entryHash = hash('sha256', $entryHashString);
+	
+	
+	// Insert log message in database
+	$sql = "UPDATE businessSyslog SET checksum='$entryHash' WHERE id='$syslogEntryId'";
+	$conn -> query($sql);
+	
+	/*echo strlen($message);
+	echo '<' . $priValue . '>' . $version . ' '  . $timestamp . ' ' . $config['baseurl'] . 'appname[MySecureVault] - ID' . $messageId . ' - BOM' . $message;
+	*/
 }
 
 

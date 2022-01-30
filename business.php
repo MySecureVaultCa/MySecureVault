@@ -253,8 +253,8 @@ if (initiateSession()) {
 					
 					
 				
-					// Initialize enterprise admin group
-					$businessGroup['name'] = 'EnterpriseAdmin';
+					// Initialize enterprise admins group
+					$businessGroup['name'] = 'Enterprise Admin';
 					$businessGroup['members'] = array($businessUserId);
 					$businessGroup['description'] = $strings['412'];
 					
@@ -270,8 +270,8 @@ if (initiateSession()) {
 					$enterpriseAdminGroupId = mysqli_insert_id($conn);
 					
 					
-					// Initialize billing admin group
-					$businessGroup['name'] = 'BillingAdmin';
+					// Initialize billing admins group
+					$businessGroup['name'] = 'Billing Admin';
 					$businessGroup['members'] = array($businessUserId);
 					$businessGroup['description'] = $strings['413'];
 					
@@ -285,6 +285,23 @@ if (initiateSession()) {
 					$sql = "INSERT INTO businessGroups (userId, cipherSuite, iv, entry, tag) VALUES ('$_SESSION[userId]', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]')";
 					$conn -> query($sql);
 					$billingAdminGroupId = mysqli_insert_id($conn);
+					
+					
+					// Initialize User managers group
+					$businessGroup['name'] = 'User Manager';
+					$businessGroup['members'] = array($businessUserId);
+					$businessGroup['description'] = $strings['417'];
+					
+					$jsonEntry = json_encode($businessGroup);
+					
+					$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
+					$encryptedEntryIv = $encryptedEntry['iv'];
+					$encryptedEntryData = $encryptedEntry['data'];
+					$encryptedEntryTag = $encryptedEntry['tag'];
+					
+					$sql = "INSERT INTO businessGroups (userId, cipherSuite, iv, entry, tag) VALUES ('$_SESSION[userId]', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]')";
+					$conn -> query($sql);
+					$userManagerGroupId = mysqli_insert_id($conn);
 					
 					// Initialize root folder
 					/*
@@ -314,30 +331,35 @@ if (initiateSession()) {
 					$conn -> query($sql);
 					
 					// Finish with business information
-					$businessInfo['businessName'] = $businessName;
-					$businessInfo['businessAddress'] = $businessAddress;
-					$businessInfo['businessCity'] = $businessCity;
-					$businessInfo['businessState'] = $businessState;
-					$businessInfo['businessCountry'] = $businessCountry;
-					$businessInfo['businessEmail'] = $businessEmail;
-					$businessInfo['businessPhone'] = $businessPhone;
-					$businessInfo['businessOwner'] = $businessUserId;
-					$businessInfo['businessOwningGroup'] = $enterpriseAdminGroupId;
-					$businessInfo['businessAcl']['u'] = 'rw';
-					$businessInfo['businessAcl']['g'] = 'rw';
-					$businessInfo['businessAcl']['o'] = 'r';
-					$businessInfo['billingName'] = $billingName;
-					$businessInfo['billingAddress'] = $billingAddress;
-					$businessInfo['billingCity'] = $billingCity;
-					$businessInfo['billingState'] = $billingState;
-					$businessInfo['billingCountry'] = $billingCountry;
-					$businessInfo['billingEmail'] = $billingEmail;
-					$businessInfo['billingOwner'] = $businessUserId;
-					$businessInfo['billingOwningGroup'] = $billingAdminGroupId;
-					$businessInfo['billingAcl']['u'] = 'rw';
-					$businessInfo['billingAcl']['g'] = 'rw';
-					$businessInfo['billingAcl']['o'] = '';
-					$businessInfo['businessTerms'] = $businessTerms;
+					$businessInfo['business']['name'] = $businessName;
+					$businessInfo['business']['address'] = $businessAddress;
+					$businessInfo['business']['city'] = $businessCity;
+					$businessInfo['business']['state'] = $businessState;
+					$businessInfo['business']['country'] = $businessCountry;
+					$businessInfo['business']['email'] = $businessEmail;
+					$businessInfo['business']['phone'] = $businessPhone;
+					$businessInfo['business']['terms'] = $businessTerms;
+					$businessInfo['business']['owner'] = $businessUserId;
+					$businessInfo['business']['owningGroup'] = $enterpriseAdminGroupId;
+					$businessInfo['business']['acl']['u'] = 'rw';
+					$businessInfo['business']['acl']['g'] = 'rw';
+					$businessInfo['business']['acl']['o'] = 'r';
+					$businessInfo['billing']['name'] = $billingName;
+					$businessInfo['billing']['address'] = $billingAddress;
+					$businessInfo['billing']['city'] = $billingCity;
+					$businessInfo['billing']['state'] = $billingState;
+					$businessInfo['billing']['country'] = $billingCountry;
+					$businessInfo['billing']['email'] = $billingEmail;
+					$businessInfo['billing']['owner'] = $businessUserId;
+					$businessInfo['billing']['owningGroup'] = $billingAdminGroupId;
+					$businessInfo['billing']['acl']['u'] = 'rw';
+					$businessInfo['billing']['acl']['g'] = 'rw';
+					$businessInfo['billing']['acl']['o'] = '';
+					$businessInfo['users']['owner'] = $businessUserId;
+					$businessInfo['users']['owningGroup'] = $userManagerGroupId;
+					$businessInfo['users']['acl']['u'] = 'rw';
+					$businessInfo['users']['acl']['g'] = 'rw';
+					$businessInfo['users']['acl']['o'] = 'r';
 					
 					
 					$jsonEntry = json_encode($businessInfo);
@@ -349,6 +371,9 @@ if (initiateSession()) {
 					
 					$sql = "UPDATE users SET cipherSuite='$config[currentCipherSuite]', iv='$encryptedEntry[iv]', entry='$encryptedEntry[data]', tag='$encryptedEntry[tag]' WHERE id='$_SESSION[userId]'";
 					$conn -> query($sql);
+					
+					
+					// Create a 10 days license
 					
 					/*
 					$loadContent = false;

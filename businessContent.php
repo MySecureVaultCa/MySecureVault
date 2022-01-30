@@ -71,6 +71,7 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
  	</script>
 	</head>
 	<body>
+	
 		<?php include 'header.php'; ?>
 		<div class="w3-row">
 			<div class="w3-third">
@@ -93,6 +94,7 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 			</div>
 			<div class="w3-twothird">
 				<?php
+				// logAction('1');
 					if($activeSession) { 
 						// User has an active session
 						if($_SESSION["businessAccount"]) {
@@ -234,11 +236,13 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 								$businessInfo = getBusinessInfo($_SESSION['userId']);
 								$userInfo = getBusinessUserInfo($_SESSION['certId']);
 								$userGroups = getBusinessUserGroups($userInfo['id']);
+								$userBusinessPermissions = getBusinessManagementPermissions();
 								
 								echo '<pre>';
 									var_dump($businessInfo);
 									var_dump($userInfo);
 									var_dump($userGroups);
+									var_dump($userBusinessPermissions);
 								echo '</pre>';
 							}
 						} else {

@@ -63,7 +63,7 @@
 				// User can manage business information. Show button accordingly!
 	?>
 	<a href="business.php" style="padding:15px!important;" class="w3-hover-blue w3-bar-item w3-button w3-large w3-border-top">
-		<i class="fa fa-building">
+		<i class="fa fa-cogs">
 			<span style="font-family: arial;"> <?php echo $strings['415'] ?></span>
 		</i>
 	</a>
