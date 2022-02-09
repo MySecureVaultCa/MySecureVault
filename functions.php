@@ -330,6 +330,16 @@ function authenticateToken() {
 					$currentDate = date('Y-m-d H:i:s');
 					$sql = "UPDATE users SET lastAccess='$currentDate' WHERE id='$_SESSION[userId]'";
 					$conn -> query($sql);
+					
+					if($_SESSION['businessAccount'] == true) {
+						$businessInfo = getBusinessInfo($_SESSION['userId']);
+						if($businessInfo['status'] != 'uninitialized') {
+							$user = getBusinessUserInfo($_SESSION['certId']);
+							$user['lastActivity'] = date("Y-m-d H:i:s");
+							setBusinessUserInfo($user['id'], $user);
+						}
+					}
+					
 					return true;
 				} else {
 					killCookie();
@@ -568,6 +578,7 @@ function generateNewCertificate($dn, $password) {
 	$trial = 50; // After 50 trials of finding a new cert serial available, the function will fail...
 	$foundCertSerial = 1;
 	while($foundCertSerial > 0 && $trial > 0) {
+		
 		//Find a free serial number
 		$serial = random_int(1, 9223372036854775807);
 		$sql = "SELECT id FROM certs WHERE serial='$serial'";
@@ -581,12 +592,17 @@ function generateNewCertificate($dn, $password) {
 		return false;
 		// $message = "Impossible de g&eacute;n&eacute;rer un certificat. R&eacute;essayer plus tard.";
 	} else {
+		
 		// We have found a free certificate number.
 		$emailAddress = mysqli_real_escape_string($conn, $dn[emailAddress]);
 		// Check if email address is already taken by another user...
 		if(emailExists($emailAddress)) { $emailExists = true; } else { $emailExists = false; }
 		
 		$proceed = true;
+		
+		/*
+		CANCEL ALL EMAIL VALIDATIONS
+		
 		if (!$emailExists) {
 			// New email address... we can proceed with a new certificate request!
 			$proceed = true;
@@ -604,12 +620,14 @@ function generateNewCertificate($dn, $password) {
 					// Same user. Seems good to proceed!
 					$proceed = true;
 				} else {
+					
 					$proceed = false;
 					//$message = "Cette adresse courriel existe d&eacute;j&agrave;. Si vous la possédez, ouvrez d'abord une session avec votre certificat existant avant de g&eacute;n&eacute;rer un nouveau certificat.";
 					return false;
 				}
 			}
 		}
+		*/
 		
 		if($proceed) {
 			// All validations successful... create certificate!
@@ -626,7 +644,7 @@ function generateNewCertificate($dn, $password) {
 			openssl_x509_export($certificate, $exportedCertificate);
 			openssl_pkey_export($privateKey, $exportedPrivateKey, $privateKeyPassword);
 			openssl_pkcs12_export($exportedCertificate, $pkcs12Certificate, array($exportedPrivateKey, $privateKeyPassword), $password);
-						
+			
 			return $pkcs12Certificate;
 		}
 	}
@@ -737,6 +755,8 @@ function registerCertificate($cert, $certPass, $userId, $secure) {
 	// Save encrypted encryption key for certificate
 	$sql = "INSERT INTO encryptionKeys (certId, padding, encryptedKey, version) VALUES ('$certId', '$config[currentPaddingString]', '$encryptedEncryptionKey', '$encryptionKeyVersion')";
 	$conn->query($sql);
+	
+	return $certId;
 }
 
 function changeCertLanguage($newLanguage) {
@@ -1223,6 +1243,30 @@ function sendFileByEmail($email, $securePrivateKey, $nonce, $type) {
 	}
 }
 
+function sendWelcomeEmail($email, $securePrivateKey, $nonce, $type) {
+	// $keypair est un array qui contient ['public'] et ['private']
+	// $cert est un fichier de certificat pkcs12 à envoyer
+	// $pass est une phrase secrète
+	// $email est une adresse courriel | MUST HAVE BEEN VALIDATED FIRST!
+	global $config;
+	global $strings;
+	
+
+	$subject = $strings['284'];
+	
+	$plaintext = $strings['285'] . $config['baseUrl'] . '/welcome.php?email=' . urlencode($email) . '&nonce=' . $nonce . '
+' . $strings['292'];
+	
+	$html = $strings['286'] . '<a href="' . $config['baseUrl'] . '/welcome.php?email=' . urlencode($email) . '&nonce=' . $nonce . '">' . $config['baseUrl'] . '/welcome.php</a></li>' . $strings['291'];
+
+	
+	if (sendEmail($email, $subject, $plaintext, $html, $securePrivateKey)) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
 
 function sendEmail($to_email, $subject, $plaintext, $html, $attachment) {
 	global $config;
@@ -1357,6 +1401,7 @@ function getBusinessInfo($userId) {
 	
 	$sql = "SELECT cipherSuite, iv, entry, tag FROM users WHERE id='$userId' AND businessAccount='1'";
 	$db_rawBusinessInfo = $conn -> query($sql);
+	
 	$db_businessInfo = $db_rawBusinessInfo -> fetch_assoc();
 	
 	if(mysqli_num_rows($db_rawBusinessInfo) < 1 || is_null($db_businessInfo['entry']) || $db_businessInfo['entry'] == '') {
@@ -1384,14 +1429,56 @@ function getBusinessUserInfo($certId) {
 		$userInfo = json_decode($jsonUserInfo, true);
 		
 		if(in_array($certId, $userInfo['certs'])) {
+			$businessUser = json_decode($jsonUserInfo, true);
 			$businessUser['id'] = $db_user['id'];
-			$businessUser['name'] = $userInfo['name'];
-			$businessUser['personalQuota'] = $userInfo['personalQuota'];
-			$businessUser['businessQuota'] = $userInfo['businessQuota'];
-			$businessUser['certs'] = $userInfo['certs'];
 		}
 	}
 	return $businessUser;	
+}
+
+function getBusinessUserInfoFromId($userId) {
+	// This function returns the user's information based on the certificate ID provided
+	global $conn;
+	$userId = mysqli_real_escape_string($conn, $userId);
+	
+	$sql = "SELECT id, userId, cipherSuite, iv, entry, tag FROM businessUsers WHERE userId='$_SESSION[userId]' AND id='$userId'";
+	$db_rawUsers = $conn -> query($sql);
+	if(mysqli_num_rows($db_rawUsers) === 1) {
+		while ($db_user = $db_rawUsers -> fetch_assoc()) {
+			$jsonUserInfo = decryptDataNextGen($db_user['iv'], $_SESSION['encryptionKey'], $db_user['entry'], $db_user['cipherSuite'], $db_user['tag']);
+			$businessUser = json_decode($jsonUserInfo, true);
+			$businessUser['id'] = $db_user['id'];
+		}
+	} else {
+		return false;
+	}
+	return $businessUser;	
+}
+
+function setBusinessUserInfo($userId, $userDataArray) {
+	global $conn;
+	global $config;
+	
+	$jsonUserInfo = json_encode($userDataArray);
+	$encryptedUserInfo = encryptDataNextGen($_SESSION['encryptionKey'], $jsonUserInfo, $config['currentCipherSuite']);
+	$iv = $encryptedUserInfo['iv'];
+	$entry = $encryptedUserInfo['data'];
+	$tag = $encryptedUserInfo['tag'];
+	
+	$sql = "UPDATE businessUsers SET cipherSuite='$config[currentCipherSuite]', iv='$iv', entry='$entry', tag='$tag' WHERE id='$userId'";
+	$conn -> query($sql);
+}
+
+function isEnterpriseAdmin($businessUserId) {
+	$userGroups = getBusinessUserGroups($businessUserId);
+	$businessInfo = getBusinessInfo($_SESSION['userId']);
+	if($businessInfo['business']['owner'] == $businessUserId) {
+		return true;
+	} elseif (in_array($businessInfo['business']['owningGroup'], $userGroups)) {
+		return true;
+	} else {
+		return false;
+	}
 }
 
 function getBusinessUserGroups($businessUserId) {
@@ -1418,25 +1505,153 @@ function getBusinessUserGroups($businessUserId) {
 	}
 }
 
+function getGroupInfo($groupId) {
+	global $conn;
+	
+	mysqli_real_escape_string($conn, $groupId);
+	$sql = "SELECT id, userId, cipherSuite, iv, entry, tag FROM businessGroups WHERE id='$groupId' AND userId='$_SESSION[userId]'";
+	$db_rawGroup = $conn -> query($sql);
+	if(mysqli_num_rows($db_rawGroup) > 0) {
+		$db_group = $db_rawGroup -> fetch_assoc();
+		
+		$jsonGroup = decryptDataNextGen($db_group['iv'], $_SESSION['encryptionKey'], $db_group['entry'], $db_group['cipherSuite'], $db_group['tag']);
+		$businessGroup = json_decode($jsonGroup, true);
+		$businessGroup['id'] = $groupId;
+		
+		return $businessGroup;
+	} else {
+		return false;
+	}
+}
+
+function getAllBusinessUsers() {
+	// This function returns an array with all the users and their certs
+	global $conn;
+	
+	$sql = "SELECT id, cipherSuite, iv, entry, tag FROM businessUsers WHERE userId='$_SESSION[userId]'";
+	$db_rawBusinessUsers = $conn -> query($sql);
+	$businessUsers = array();
+	while($db_businessUsers = $db_rawBusinessUsers -> fetch_assoc()) {
+		$jsonUser = decryptDataNextGen($db_businessUsers['iv'], $_SESSION['encryptionKey'], $db_businessUsers['entry'], $db_businessUsers['cipherSuite'], $db_businessUsers['tag']);
+		
+		$businessUser = json_decode($jsonUser, true);
+		$businessUser['id'] = $db_businessUsers['id'];
+		$businessUsers[] = $businessUser;
+	}
+	
+	return $businessUsers;
+}
+
+function getAllBusinessGroups() {
+	global $conn;
+	
+	$sql = "SELECT id, cipherSuite, iv, entry, tag FROM businessGroups WHERE userId='$_SESSION[userId]'";
+	$db_rawBusinessGroups = $conn -> query($sql);
+	$businessGroups = array();
+	while($db_businessGroups = $db_rawBusinessGroups -> fetch_assoc()) {
+		$jsonGroup = decryptDataNextGen($db_businessGroups['iv'], $_SESSION['encryptionKey'], $db_businessGroups['entry'], $db_businessGroups['cipherSuite'], $db_businessGroups['tag']);
+		
+		$businessGroup = json_decode($jsonGroup, true);
+		$businessGroup['id'] = $db_businessGroups['id'];
+		$businessGroups[] = $businessGroup;
+	}
+	
+	return $businessGroups;
+}
+
+function businessGroupsList($selected) {
+	$effectivePermission = getBusinessManagementPermissions();
+	$businessInfo = getBusinessInfo($_SESSION['userId']);
+	
+	$groups = getAllBusinessGroups();
+	$htmlString = '<option></option>';
+	
+	foreach($groups as $group) {
+		if($group['id'] == $businessInfo['business']['owningGroup']) {
+			if($effectivePermission['business'] == 'rw') {
+				if ($selected == $group['id']){ $select = ' selected';}
+				
+				$htmlString .= '<option value="' . $group['id'] . '"' . $select . '>' . $group['name'] . '</option>';
+				unset($select);
+			}
+		} else {
+			if ($selected == $group['id']){ $select = ' selected';}
+				
+			$htmlString .= '<option value="' . $group['id'] . '"' . $select . '>' . $group['name'] . '</option>';
+			unset($select);
+		}
+	}
+	
+	return $htmlString;
+}
+
+function getBusinessUserCertInfo($certId) {
+	global $conn;
+	
+	$sql = "SELECT id, serial, revoked, ivCertData, encryptedCertData, tagCertData, cipherSuiteCertData FROM certs WHERE id='$certId'";
+	$db_rawCert = $conn -> query($sql);
+	$db_cert = $db_rawCert -> fetch_assoc();
+	
+	$jsonCert = decryptDataNextGen($db_cert['ivCertData'], $_SESSION['encryptionKey'], $db_cert['encryptedCertData'], $db_cert['cipherSuiteCertData'], $db_cert['tagCertData']);
+	
+	$certInfo = json_decode($jsonCert, true);
+	$certInfo['id'] = $certId;
+	$certInfo['serial'] = $db_cert['serial'];
+	$certInfo['revoked'] = $db_cert['revoked'];
+	
+	$currentDate = date('Y-m-d H:i:s');
+	$expirationUnix = strtotime($certInfo['validTo']);
+	$nowUnix = strtotime($currentDate);
+	$expiresInSeconds = ($expirationUnix - $nowUnix);
+	
+	$certInfo['daysToExpire'] = round($expiresInSeconds / 86400, 1);
+		
+	return $certInfo;
+}
+
+function setLastLoginDate($certId) {
+	global $conn;
+	global $config;
+	
+	$user = getBusinessUserInfo($certId);
+	
+	$user['lastLogin'] = date('Y-m-d H:i:s');
+	$user['lastActivity'] = date('Y-m-d H:i:s');
+	
+	$jsonUser = json_encode($user);
+	// echo $jsonUser;
+	$encryptedUser = encryptDataNextGen($_SESSION['encryptionKey'], $jsonUser, $config['currentCipherSuite']);
+	$iv = $encryptedUser['iv'];
+	$entry = $encryptedUser['data'];
+	$tag = $encryptedUser['tag'];
+	
+	$sql = "UPDATE businessUsers SET cipherSuite='$config[currentCipherSuite]', iv='$iv', entry='$entry', tag='$tag' WHERE id='$user[id]'";
+	$conn -> query($sql);
+	
+}
+
 function getBusinessManagementPermissions() {
 	$businessInfo = getBusinessInfo($_SESSION['userId']);
 	$businessUser = getBusinessUserInfo($_SESSION['certId']);
 	$businessUserGroups = getBusinessUserGroups($businessUser['id']);
 	
 	if($businessInfo['business']['owner'] == $businessUser['id'])   {
+		
 		// This is the business owner... welcome in my lord...
 		// Grab permission on the object
 		$effectivePermission['business'] = $businessInfo['business']['acl']['u'];
 	} elseif(in_array($businessInfo['business']['owningGroup'], $businessUserGroups)) {
+		
 		// User is in the owning group
 		$effectivePermission['business'] = $businessInfo['business']['acl']['g'];
 	} else {
+		
 		// Get permission for "other"
 		$effectivePermission['business'] = $businessInfo['business']['acl']['o'];
 	}
 	
-	if($businessInfo['billing']['owner'] == $businessUser['id'])   {
-		// This is the billing owner... welcome in my lord...
+	if($businessInfo['billing']['owner'] == $businessUser['id'] || in_array($businessInfo['business']['owningGroup'], $businessUserGroups))   {
+		// This is the billing owner or enterprise admin... welcome in my lord...
 		// Grab permission on the object
 		$effectivePermission['billing'] = $businessInfo['billing']['acl']['u'];
 	} elseif(in_array($businessInfo['billing']['owningGroup'], $businessUserGroups)) {
@@ -1447,8 +1662,8 @@ function getBusinessManagementPermissions() {
 		$effectivePermission['billing'] = $businessInfo['billing']['acl']['o'];
 	}
 	
-	if($businessInfo['users']['owner'] == $businessUser['id'])   {
-		// This is the users owner... welcome in my lord...
+	if($businessInfo['users']['owner'] == $businessUser['id'] || in_array($businessInfo['business']['owningGroup'], $businessUserGroups))   {
+		// This is the users owner or enterprise admin... welcome in my lord...
 		// Grab permission on the object
 		$effectivePermission['users'] = $businessInfo['users']['acl']['u'];
 	} elseif(in_array($businessInfo['users']['owningGroup'], $businessUserGroups)) {
@@ -1459,10 +1674,22 @@ function getBusinessManagementPermissions() {
 		$effectivePermission['users'] = $businessInfo['users']['acl']['o'];
 	}
 	
+	if($businessInfo['logging']['owner'] == $businessUser['id'] || in_array($businessInfo['business']['owningGroup'], $businessUserGroups))   {
+		// This is the logging owner or enterprise admin... welcome in my lord...
+		// Grab permission on the object
+		$effectivePermission['logging'] = $businessInfo['logging']['acl']['u'];
+	} elseif(in_array($businessInfo['logging']['owningGroup'], $businessUserGroups)) {
+		// User is in the owning group
+		$effectivePermission['logging'] = $businessInfo['logging']['acl']['g'];
+	} else {
+		// Get permission for "other"
+		$effectivePermission['logging'] = $businessInfo['logging']['acl']['o'];
+	}
+	
 	return $effectivePermission;
 }
 
-function logAction($messageId){
+function logAction($messageId, $customInformation=''){
 	global $config;
 	global $conn;
 	date_default_timezone_set('UTC');
@@ -1523,6 +1750,7 @@ function logAction($messageId){
 	$messageArray['originalMessageId'] = $originalMessageId;
 	$messageArray['actualMessageId'] = $messageId;
 	$messageArray['messageContent'] = $messageContent;
+	$messageArray['customInformation'] = $customInformation;
 	
 	$message = json_encode($messageArray);
 	
@@ -1542,45 +1770,36 @@ function logAction($messageId){
 		$message = json_encode($messageArray);
 	}
 	
-	// Encrypt log message before insert
-	$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $message, $config['currentCipherSuite']);
-	$encryptedEntryIv = $encryptedEntry['iv'];
-	$encryptedEntryData = $encryptedEntry['data'];
-	$encryptedEntryTag = $encryptedEntry['tag'];
-	
-	$sql = "INSERT INTO businessSyslog (userId, cipherSuite, iv, entry, tag) VALUES ('$_SESSION[userId]', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]')";
-	/*if ($conn->query($sql) === true) {
-	echo 'OK';
-} else {
-	echo $conn->error;
-} */
-	
-	
-	$conn -> query($sql);
-	$syslogEntryId = mysqli_insert_id($conn);
+	$syslogMessage = '<' . $priValue . '>' . $version . ' ' . $timestamp . ' ' . $config['baseUrl'] . ' MySecureVault - ID' . $messageId . ' - BOM' . $message;
 	
 	// Get ID and checksum of last log row
-	$sql = "SELECT (id, checksum) FROM businessSyslog WHERE userId='$_SESSION[userId]' AND checksum IS NOT NULL ORDER BY id DESC LIMIT 1";
+	$sql = "LOCK TABLE businessSyslog WRITE";
+	$conn -> query($sql);
+	
+	$sql = "SELECT id, checksum FROM businessSyslog WHERE userId='$_SESSION[userId]' AND checksum IS NOT NULL ORDER BY id DESC LIMIT 1";
 	$db_rawSyslogEntry = $conn -> query($sql);
 	if(mysqli_num_rows($db_rawSyslogEntry) > 0) {
 		$db_syslogEntry = $db_rawSyslogEntry -> fetch_assoc();
 		// Not the first entry, add hash from last entry
-		$entryHashString = $config['salt'] . $syslogEntryId . $message . $db_syslogEntry['checksum'];
+		$entryHashString = $config['salt'] . $syslogEntryId . $syslogMessage . $db_syslogEntry['checksum'];
 	} else {
 		// This is the first entry! Generate first hash
-		$entryHashString = $config['salt'] . $syslogEntryId . $message;
+		$entryHashString = $config['salt'] . $syslogEntryId . $syslogMessage;
 	}
 	
 	$entryHash = hash('sha256', $entryHashString);
 	
+	// Encrypt log message before insert
+	$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $syslogMessage, $config['currentCipherSuite']);
+	$encryptedEntryIv = $encryptedEntry['iv'];
+	$encryptedEntryData = $encryptedEntry['data'];
+	$encryptedEntryTag = $encryptedEntry['tag'];
 	
-	// Insert log message in database
-	$sql = "UPDATE businessSyslog SET checksum='$entryHash' WHERE id='$syslogEntryId'";
+	$sql = "INSERT INTO businessSyslog (userId, cipherSuite, iv, entry, tag, checksum) VALUES ('$_SESSION[userId]', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]', '$entryHash')";
 	$conn -> query($sql);
-	
-	/*echo strlen($message);
-	echo '<' . $priValue . '>' . $version . ' '  . $timestamp . ' ' . $config['baseurl'] . 'appname[MySecureVault] - ID' . $messageId . ' - BOM' . $message;
-	*/
+
+	$sql = "UNLOCK TABLES";
+	$conn -> query($sql);
 }
 
 

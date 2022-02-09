@@ -537,8 +537,8 @@ ksort($filesArray);
 				<div class="w3-padding">
 					<h3><?php echo $strings['399']; ?></h3>
 					<ul class="w3-ul">
-						<li><b><?php echo $businessInfo['businessName']; ?></b></li>
-						<li><?php echo $businessInfo['businessAddress']; ?><br><?php echo $businessInfo['businessCity']; ?>, <?php echo $businessInfo['businessState']; ?><br><?php echo $businessInfo['businessCountry']; ?></li>
+						<li><b><?php echo $businessInfo['business']['name']; ?></b></li>
+						<li><?php echo $businessInfo['business']['address']; ?><br><?php echo $businessInfo['business']['city']; ?>, <?php echo $businessInfo['business']['state']; ?><br><?php echo $businessInfo['business']['country']; ?></li>
 					</ul>
 				</div>
 				

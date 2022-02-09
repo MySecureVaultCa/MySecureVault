@@ -236,9 +236,13 @@ if (initiateSession()) {
 					
 					// Initialize business user
 					$businessUser['name'] = $_SESSION['fullName'];
+					$businessUser['email'] = $_SESSION['emailAddress'];
 					$businessUser['personalQuota'] = 0;
 					$businessUser['businessQuota'] = 0;
 					$businessUser['certs'] = array($_SESSION['certId']);
+					$businessUser['lastLogin'] = date("Y-m-d H:i:s");
+					$businessUser['lastActivity'] = date("Y-m-d H:i:s");
+					
 					
 					$jsonEntry = json_encode($businessUser);
 					
@@ -303,6 +307,23 @@ if (initiateSession()) {
 					$conn -> query($sql);
 					$userManagerGroupId = mysqli_insert_id($conn);
 					
+					
+					// Initialize Logging group
+					$businessGroup['name'] = 'Logging';
+					$businessGroup['members'] = array($businessUserId);
+					$businessGroup['description'] = $strings['455'];
+					
+					$jsonEntry = json_encode($businessGroup);
+					
+					$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
+					$encryptedEntryIv = $encryptedEntry['iv'];
+					$encryptedEntryData = $encryptedEntry['data'];
+					$encryptedEntryTag = $encryptedEntry['tag'];
+					
+					$sql = "INSERT INTO businessGroups (userId, cipherSuite, iv, entry, tag) VALUES ('$_SESSION[userId]', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]')";
+					$conn -> query($sql);
+					$loggingGroupId = mysqli_insert_id($conn);
+					
 					// Initialize root folder
 					/*
 						ACL reference:
@@ -360,6 +381,11 @@ if (initiateSession()) {
 					$businessInfo['users']['acl']['u'] = 'rw';
 					$businessInfo['users']['acl']['g'] = 'rw';
 					$businessInfo['users']['acl']['o'] = 'r';
+					$businessInfo['logging']['owner'] = $businessUserId;
+					$businessInfo['logging']['owningGroup'] = $loggingGroupId;
+					$businessInfo['logging']['acl']['u'] = 'rw';
+					$businessInfo['logging']['acl']['g'] = 'rw';
+					$businessInfo['logging']['acl']['o'] = 'r';
 					
 					
 					$jsonEntry = json_encode($businessInfo);
@@ -372,6 +398,7 @@ if (initiateSession()) {
 					$sql = "UPDATE users SET cipherSuite='$config[currentCipherSuite]', iv='$encryptedEntry[iv]', entry='$encryptedEntry[data]', tag='$encryptedEntry[tag]' WHERE id='$_SESSION[userId]'";
 					$conn -> query($sql);
 					
+					logAction('12');
 					
 					// Create a 10 days license
 					

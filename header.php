@@ -62,7 +62,9 @@
 				} else {
 					// Business is initialized... Check user rights on this business!
 					$effectivePermission = getBusinessManagementPermissions();
+					
 					if($effectivePermission['billing'] == 'rw') {
+						
 						// User can manage billing and licenses. Show button accordingly!
 			?>
 			<a style="padding: 15px!important;" class="w3-bar-item w3-button w3-large w3-border-top w3-hover-blue" href="billing.php">
@@ -80,9 +82,22 @@
 					<span style="font-family: arial;"> <?php echo $strings['415'] ?></span>
 				</i>
 			</a>
+			<?php
+					}
+					if($effectivePermission['users'] == 'rw') {
+			?>
 			<a style="padding: 15px!important;" class="w3-bar-item w3-button w3-large w3-border-top w3-hover-blue" href="usersAndGroups.php">
 				<i class="fa fa-users w3-hover-blue">
 					<span style="font-family: arial;"> <?php echo $strings['416'] ?></span>
+				</i>
+			</a>
+			<?php
+					}
+					if($effectivePermission['logging'] == 'rw' || $effectivePermission['logging'] == 'r') {
+			?>
+			<a style="padding: 15px!important;" class="w3-bar-item w3-button w3-large w3-border-top w3-hover-blue" href="logging.php">
+				<i class="fa fa-list w3-hover-blue">
+					<span style="font-family: arial;"> <?php echo $strings['456'] ?></span>
 				</i>
 			</a>
 			<?php

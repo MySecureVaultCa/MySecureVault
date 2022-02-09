@@ -237,12 +237,12 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 								$userInfo = getBusinessUserInfo($_SESSION['certId']);
 								$userGroups = getBusinessUserGroups($userInfo['id']);
 								$userBusinessPermissions = getBusinessManagementPermissions();
+								$businessGroups = getAllBusinessGroups();
+								$certInfo = getBusinessUserCertInfo($_SESSION['certId']);
 								
 								echo '<pre>';
-									var_dump($businessInfo);
 									var_dump($userInfo);
-									var_dump($userGroups);
-									var_dump($userBusinessPermissions);
+									var_dump($businessInfo);
 								echo '</pre>';
 							}
 						} else {

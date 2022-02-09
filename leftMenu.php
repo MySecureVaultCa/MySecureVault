@@ -67,9 +67,24 @@
 			<span style="font-family: arial;"> <?php echo $strings['415'] ?></span>
 		</i>
 	</a>
+	<?php
+			}
+			if($effectivePermission['users'] == 'rw') {
+				// User can manage business information. Show button accordingly!
+	?>
 	<a href="usersAndGroups.php" style="padding:15px!important;" class="w3-hover-blue w3-bar-item w3-button w3-large w3-border-top">
 		<i class="fa fa-users">
 			<span style="font-family: arial;"> <?php echo $strings['416'] ?></span>
+		</i>
+	</a>
+	<?php
+			}
+			if($effectivePermission['logging'] == 'rw' || $effectivePermission['logging'] == 'r') {
+				// User can manage business information. Show button accordingly!
+	?>
+	<a href="logging.php" style="padding:15px!important;" class="w3-hover-blue w3-bar-item w3-button w3-large w3-border-top">
+		<i class="fa fa-list">
+			<span style="font-family: arial;"> <?php echo $strings['456'] ?></span>
 		</i>
 	</a>
 	<?php
@@ -112,4 +127,5 @@
 		</i>
 	</a>
 	<?php } ?>
-</div> 
+</div>
+<?php // var_dump($_SESSION); ?>

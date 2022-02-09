@@ -301,6 +301,8 @@ if (initiateSession()) {
 						$db_userAccount = $db_rawUserAccount -> fetch_assoc();
 						if($db_userAccount['businessAccount'] == '1') {
 							$_SESSION['businessAccount'] = true;
+							// Set last login timestamp
+							setLastLoginDate($_SESSION['certId']);
 						} else {
 							$_SESSION['businessAccount'] = false;
 						}
