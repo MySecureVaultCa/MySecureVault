@@ -41,8 +41,7 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
     	
     	// e.style.display = (e.style.display == 'block') ? 'none' : 'block';
  		}
-		
-		
+				
 		function showhidePlus(div, icon) {
 			showhide(div);
 			var e = document.getElementById(div);
@@ -241,8 +240,7 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 								$certInfo = getBusinessUserCertInfo($_SESSION['certId']);
 								
 								echo '<pre>';
-									var_dump($userInfo);
-									var_dump($businessInfo);
+									var_dump($businessGroups);
 								echo '</pre>';
 							}
 						} else {

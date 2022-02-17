@@ -300,23 +300,33 @@ if (initiateSession()) {
 						$db_rawUserAccount = $conn -> query($sql);
 						$db_userAccount = $db_rawUserAccount -> fetch_assoc();
 						if($db_userAccount['businessAccount'] == '1') {
-							$_SESSION['businessAccount'] = true;
-							// Set last login timestamp
-							setLastLoginDate($_SESSION['certId']);
+							$businessUserInfo = getBusinessUserInfo($_SESSION['certId']);
+							if($businessUserInfo['deleted'] !== '1') {
+								$_SESSION['businessAccount'] = true;
+								// Set last login timestamp
+								setLastLoginDate($_SESSION['certId']);
+							} else {
+								$_SESSION['businessAccount'] = true;
+								// This business user account has been deleted! Just make believe the cert is not valid...
+								$backToForm = true;
+								$certError = $strings["8"];
+								$loadContent = true;
+							}
 						} else {
 							$_SESSION['businessAccount'] = false;
 						}
 						
-						
-						setToken();
-						registerSession($privateDeviceSession);
-						$loadContent = false;
-						if($_SESSION['certificateFile'] != '') {
-							unset($_SESSION['certificateFile']);
-							unset($_SESSION['certificateFilename']);
+						if($_SESSION['businessAccount'] === false || ($_SESSION['businessAccount'] === true && $backToForm !== true)) {
+							setToken();
+							registerSession($privateDeviceSession);
+							$loadContent = false;
+							if($_SESSION['certificateFile'] != '') {
+								unset($_SESSION['certificateFile']);
+								unset($_SESSION['certificateFilename']);
+							}
+							header("HTTP/1.1 301 Moved Permanently");
+							header("Location: profile.php");
 						}
-						header("HTTP/1.1 301 Moved Permanently");
-						header("Location: profile.php");
 						
 					} else {
 						// A forged certificate has been provided. Mothafucka.

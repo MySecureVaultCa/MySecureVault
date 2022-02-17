@@ -338,11 +338,16 @@ function authenticateToken() {
 							$user['lastActivity'] = date("Y-m-d H:i:s");
 							setBusinessUserInfo($user['id'], $user);
 						}
+						if($user['deleted'] === '1') {
+							killCookie();
+							return false;
+						}
 					}
 					
 					return true;
 				} else {
 					killCookie();
+					return false; // Freshly added 2022-02-16. If any problem encountered, check here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 				}
 			}
 		} else {
@@ -1481,6 +1486,15 @@ function isEnterpriseAdmin($businessUserId) {
 	}
 }
 
+function isBusinessOwner($businessUserId) {
+	$businessInfo = getBusinessInfo($_SESSION['userId']);
+	if($businessInfo['business']['owner'] == $businessUserId) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
 function getBusinessUserGroups($businessUserId) {
 	// This function returns the database group ID numbers of which a business user account is a member.
 	
@@ -1583,6 +1597,162 @@ function businessGroupsList($selected) {
 	}
 	
 	return $htmlString;
+}
+
+function businessGroupsCheckboxes($userGroups=array(), $forUser='') {
+	// $groups is an array of groups IDs!
+	// $businessUserId is the requesting user.
+	
+	$effectivePermission = getBusinessManagementPermissions();
+	$businessInfo = getBusinessInfo($_SESSION['userId']);
+	$businessUser = getBusinessUserInfo($_SESSION['certId']);
+	$groups = getAllBusinessGroups();
+	$htmlString = '<div class="w3-row">';
+	
+	foreach($groups as $group) {
+		if($group['id'] == $businessInfo['business']['owningGroup']) {
+			if($effectivePermission['business'] == 'rw') {
+				// Only an enterprise admin can manage enterprise admins!
+				if (in_array($group['id'], $userGroups)){ $checked = ' checked="checked"';}
+				if(isBusinessOwner($forUser)) {
+					// One cannot remove the business Owner from the enterprise admin group!!!
+					$disabled = ' disabled="disabled"';
+					$htmlString .='<input type="hidden" name="groups[]" value="' . $group['id'] . '">';
+				}
+				$htmlString .= '<div class="w3-padding w3-half"> <input class="w3-check" type="checkbox" name="groups[]" value="' . $group['id'] . '"' . $checked . $disabled . '> ' . $group['name'] . '</div>';
+				unset($checked);
+				unset($disabled);
+			}
+		} else {
+			if (in_array($group['id'], $userGroups)){ $checked = ' checked';}
+				
+			$htmlString .= '<div class="w3-padding w3-half"> <input class="w3-check" type="checkbox" name="groups[]" value="' . $group['id'] . '"' . $checked . '> ' . $group['name'] . '</div>';
+			unset($checked);
+		}
+	}
+	$htmlString .= '</div>';
+	
+	return $htmlString;
+}
+
+function getBusinessUserHistory($userId) {
+	// $userId is the numeric ID of a business user.
+	global $conn;
+	global $config;
+	
+	$sql = "SELECT id, businessUserId, cipherSuite, iv, entry, tag, checksum FROM businessUsersArchive WHERE businessUserId='$userId' LIMIT 20";
+	$db_rawUserHistory = $conn -> query($sql);
+	if(mysqli_num_rows($db_rawUserHistory) >= 1) {
+		// There is a user history. Loop through all entries and return an array
+		$history = array();
+		while($db_history = $db_rawUserHistory -> fetch_assoc()) {
+			$jsonhistory = decryptDataNextGen($db_history['iv'], $_SESSION['encryptionKey'], $db_history['entry'], $db_history['cipherSuite'], $db_history['tag']);
+			$history[] = json_decode($jsonhistory, true);
+		}
+		return $history;
+	} else {
+		return false;
+	}
+}
+
+function updateUserInfo($userId, $newUserInfo) {
+	// $userId is the numeric ID of the user being updated.
+	// $newUserInfo is an array that contains all the new user's information.
+	global $conn;
+	global $config;
+	
+	$currentUserInfo = getBusinessUserInfoFromId($userId);
+	$currentUserInfo['editDate'] = date('Y-m-d H:i:s');
+	$currentUserInfo['groups'] = getBusinessUserGroups($businessUserId);
+	$jsonCurrentUserInfo = json_encode($currentUserInfo);
+	
+	// Get ID and checksum of last history row
+	$sql = "LOCK TABLE businessUsersArchive WRITE";
+	$conn -> query($sql);
+	
+	$sql = "SELECT id, checksum FROM businessUsersArchive WHERE businessUserId='$userId' AND checksum IS NOT NULL ORDER BY id DESC LIMIT 1";
+	$db_rawHistoryEntry = $conn -> query($sql);
+	if(mysqli_num_rows($db_rawHistoryEntry) > 0) {
+		$db_historyEntry = $db_rawHistoryEntry -> fetch_assoc();
+		// Not the first entry, add hash from last entry
+		$entryHashString = $config['salt'] . $jsonCurrentUserInfo . $db_historyEntry['checksum'];
+	} else {
+		// This is the first entry! Generate first hash
+		$entryHashString = $config['salt'] . $jsonCurrentUserInfo;
+	}
+	
+	$entryHash = hash('sha256', $entryHashString);
+	
+	// Encrypt log message before insert
+	$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonCurrentUserInfo, $config['currentCipherSuite']);
+	$encryptedEntryIv = $encryptedEntry['iv'];
+	$encryptedEntryData = $encryptedEntry['data'];
+	$encryptedEntryTag = $encryptedEntry['tag'];
+	
+	$sql = "INSERT INTO businessUsersArchive (businessUserId, cipherSuite, iv, entry, tag, checksum) VALUES ('$userId', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]', '$entryHash')";
+	$conn -> query($sql);
+
+	$sql = "UNLOCK TABLES";
+	$conn -> query($sql);
+	
+	// Update user info...
+	$newUserInfo['lastModified'] = date("Y-m-d H:i:s");
+	$jsonNewUserInfo = json_encode($newUserInfo);
+	
+	$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonNewUserInfo, $config['currentCipherSuite']);
+	$encryptedEntryIv = $encryptedEntry['iv'];
+	$encryptedEntryData = $encryptedEntry['data'];
+	$encryptedEntryTag = $encryptedEntry['tag'];
+	
+	$sql = "UPDATE businessUsers SET cipherSuite='$config[currentCipherSuite]', iv='$encryptedEntryIv', entry='$encryptedEntryData', tag='$encryptedEntryTag' WHERE id='$userId'";
+	$conn -> query($sql);
+}
+
+function updateUserGroups($userId, $groups) {
+	global $conn;
+	global $config;
+	
+	// $userId is the numeric ID of the user being updated.
+	// $groups is an array that contains all the user's groups.
+	$businessGroups = getAllBusinessGroups();
+	$userInfo = getBusinessUserInfoFromId($userId);
+	foreach($businessGroups as $group) {
+		if(in_array($group['id'], $groups)) {
+			// User should be a member of this group
+			// is he yet?
+			if(!in_array($userId, $group['members'])) {
+				// User is not already a member of this group... add it!
+				$group['members'][] = $userId;
+				logAction('39', 'User ID: ' . $userId . ', Name: ' . $userInfo['name'] . ', Group ID:' . $group['id'] . ', Group name:' . $group['name']);
+				$updated = true;
+			}
+		} else {
+			// User should not be a member of this group
+			if(in_array($userId, $group['members'])) {
+				// User is a member of this group, but has been removed... remove it!
+				$membershipKey = array_search($userId, $group['members']);
+				unset($group['members'][$membershipKey]);
+				// Reindex array to remove empty elements
+				$group['members'] = array_values($group['members']);
+				logAction('40', 'User ID: ' . $userId . ', Name: ' . $userInfo['name'] . ', Group ID:' . $group['id'] . ', Group name:' . $group['name']);
+				$updated = true;
+			}
+		}
+		if($updated) {
+			// Update group in database...
+			$jsonGroup = json_encode($group);
+			
+			$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonGroup, $config['currentCipherSuite']);
+			$encryptedEntryIv = $encryptedEntry['iv'];
+			$encryptedEntryData = $encryptedEntry['data'];
+			$encryptedEntryTag = $encryptedEntry['tag'];
+			
+			$sql = "UPDATE businessGroups SET cipherSuite='$config[currentCipherSuite]', iv='$encryptedEntryIv', entry='$encryptedEntryData', tag='$encryptedEntryTag' WHERE id='$group[id]'";
+			$conn -> query($sql);
+			
+			unset($updated);
+		}
+	}
 }
 
 function getBusinessUserCertInfo($certId) {
@@ -1781,10 +1951,10 @@ function logAction($messageId, $customInformation=''){
 	if(mysqli_num_rows($db_rawSyslogEntry) > 0) {
 		$db_syslogEntry = $db_rawSyslogEntry -> fetch_assoc();
 		// Not the first entry, add hash from last entry
-		$entryHashString = $config['salt'] . $syslogEntryId . $syslogMessage . $db_syslogEntry['checksum'];
+		$entryHashString = $config['salt'] . $syslogMessage . $db_syslogEntry['checksum'];
 	} else {
 		// This is the first entry! Generate first hash
-		$entryHashString = $config['salt'] . $syslogEntryId . $syslogMessage;
+		$entryHashString = $config['salt'] . $syslogMessage;
 	}
 	
 	$entryHash = hash('sha256', $entryHashString);

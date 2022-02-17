@@ -118,18 +118,12 @@ if (initiateSession()) {
 							logAction('25', 'User: (ID: ' . $editUser['id'] . ') ' . $editUser['name']);
 							
 							// Set variables for form...
-							$deviceNameStart = strpos($editUser['name'], ' - ');
-							if ($deviceNameStart !== false) {
-								// There is a device name.
-								$editUserName = substr($editUser['name'], 0, $deviceNameStart);
-								$editUserDevice = substr($editUser['name'], $deviceNameStart+3);
-							} else {
-								// No device name.
-								$editUserName = $editUser['name'];
-							}
-							
+							$editUserName = $editUser['name'];
 							$editUserEmail = $editUser['email'];
 							$editUserCity = $editUser['city'];
+							$editUserState = $editUser['state'];
+							$editUserCountry = $editUser['country'];
+							$editUserGroups = getBusinessUserGroups($editUser['id']);
 							
 						} else {
 							logAction('27', 'User: (ID: ' . $editUser['id'] . ') ' . $editUser['name']);
@@ -138,6 +132,31 @@ if (initiateSession()) {
 					} else {
 						logAction('26', 'User ID provided: ' . $_GET['editUser']);
 						$message = $strings['457'];
+					}
+				}
+				
+				if(ctype_digit($_GET['deleteUser'])) {
+					
+					$deleteUser = getBusinessUserInfoFromId($_GET['deleteUser']);
+					if( $deleteUser !== false ) {
+						$currentUser = getBusinessUserInfo($_SESSION['certId']);
+						if((isEnterpriseAdmin($currentUser['id']) && isEnterpriseAdmin($deleteUser['id'])) || (isEnterpriseAdmin($deleteUser['id']) === false)) {
+							if(isBusinessOwner($deleteUser['id'])) {
+								logAction('44', 'User: (ID: ' . $deleteUser['id'] . ') ' . $deleteUser['name']);
+								$message = $strings['462'];
+							} else {
+								logAction('45', 'User: (ID: ' . $deleteUser['id'] . ') ' . $deleteUser['name']);
+								$deleteUser['deleted'] = '1';
+								updateUserInfo($deleteUser['id'], $deleteUser);
+								updateUserGroups($deleteUser['id'], array());
+							}
+						} else {
+							logAction('43', 'User: (ID: ' . $deleteUser['id'] . ') ' . $deleteUser['name']);
+							$message = $strings['462'];
+						}
+					} else {
+						logAction('42', 'User ID provided: ' . $_GET['deleteUser']);
+						$message = $strings['462'];
 					}
 				}
 				
@@ -248,11 +267,6 @@ if (initiateSession()) {
 					$newUserPassphrase = $_POST["newUserPassphrase"];
 					$newUserPassphraseRetype = $_POST["newUserPassphraseRetype"];
 					$newUserDownloadPassphrase = $_POST["newUserDownloadPassphrase"];
-					$newUserGroup1 = htmlOutput($_POST["newUserGroup1"]);
-					$newUserGroup2 = htmlOutput($_POST["newUserGroup2"]);
-					$newUserGroup3 = htmlOutput($_POST["newUserGroup3"]);
-					$newUserGroup4 = htmlOutput($_POST["newUserGroup4"]);
-					$newUserGroup5 = htmlOutput($_POST["newUserGroup5"]);
 					
 					if($newUserDevice == '') {
 						// No device specified, use only the user's name
@@ -313,28 +327,28 @@ if (initiateSession()) {
 					if($newUserPassType == 'downloadPassphrase') {
 						if(strlen($newUserDownloadPassphrase) < 15) {
 							unset($newUserDownloadPassphrase);
-							$backToForm = true;
+							$backToAddUserForm = true;
 							$newUserDownloadPassphraseError = $strings['283'];
 						} elseif(strlen($newUserDownloadPassphrase) > 128) {
 							unset($newUserDownloadPassphrase);
-							$backToForm = true;
+							$backToAddUserForm = true;
 							$newUserDownloadPassphraseError = $strings['448'];
 						}
 					} elseif($newUserPassType == 'userPassphrase') {
 						if(strlen($newUserPassphrase) < 15) {
 							unset($newUserPassphrase);
 							unset($newUserPassphraseRetype);
-							$backToForm = true;
+							$backToAddUserForm = true;
 							$newUserPassphraseError = $strings['449'];
 						} elseif(strlen($newUserPassphrase) > 128) {
 							unset($newUserPassphrase);
 							unset($newUserPassphraseRetype);
-							$backToForm = true;
+							$backToAddUserForm = true;
 							$newUserDownloadPassphraseError = $strings['448'];
 						} elseif($newUserPassphrase != $newUserPassphraseRetype) {
 							unset($newUserPassphrase);
 							unset($newUserPassphraseRetype);
-							$backToForm = true;
+							$backToAddUserForm = true;
 							$newUserPassphraseRetypeError = $strings['110'];
 						}
 					} else {
@@ -342,64 +356,38 @@ if (initiateSession()) {
 						unset($newUserDownloadPassphrase);
 						unset($newUserPassphrase);
 						unset($newUserPassphraseRetype);
-						$backToForm = true;
+						$backToAddUserForm = true;
 						$newUserPassTypeError = $strings['450'];
 					}
 					
 					$effectivePermission = getBusinessManagementPermissions();
 					$businessInfo = getBusinessInfo($_SESSION['userId']);
 					
-					if($newUserGroup1 == '' || !ctype_digit($newUserGroup1)) {
-						unset($newUserGroup1);
-					} elseif((getGroupInfo($newUserGroup1) === false) || ($newUserGroup1 == $businessInfo['business']['owningGroup'] && $effectivePermission['business'] != 'rw')) {
-						// Group is not valid. Unset.
-						logAction('18', 'Group ID: ' . $newUserGroup1);
-						$backToAddUserForm = true;
-						$newUserGroup1Error = $strings['441'];
+					foreach($_POST['groups'] as $key => $group){
+						if(!ctype_digit($group)) {
+							$group = htmlOutput($group);
+							unset($_POST['groups'][$key]);
+							$backToAddUserForm = true;
+							$newUserGroupError = $strings['441'];
+							logAction('37', 'Group ID: ' . $group);
+						} else {
+							//OK that's a number, check if number is OK...
+							if((getGroupInfo($group) === false) || ($group == $businessInfo['business']['owningGroup'] && $effectivePermission['business'] != 'rw')) {
+								logAction('18', 'Group ID: ' . $group);
+								$backToAddUserForm = true;
+								$newUserGroupError = $strings['441'];
+							} else {
+								$newUserGroups[] = $group;
+							}
+						}
 					}
-					if($newUserGroup2 == '' || !ctype_digit($newUserGroup2)) {
-						unset($newUserGroup2);
-					} elseif((getGroupInfo($newUserGroup2) === false) || ($newUserGroup2 == $businessInfo['business']['owningGroup'] && $effectivePermission['business'] != 'rw')) {
-						// Group is not valid. Unset.
-						logAction('18', 'Group ID: ' . $newUserGroup2);
-						$backToAddUserForm = true;
-						$newUserGroup2Error = $strings['441'];
-					}
-					if($newUserGroup3 == '' || !ctype_digit($newUserGroup3)) {
-						unset($newUserGroup3);
-					} elseif((getGroupInfo($newUserGroup3) === false) || ($newUserGroup3 == $businessInfo['business']['owningGroup'] && $effectivePermission['business'] != 'rw')) {
-						// Group is not valid. Unset.
-						logAction('18', 'Group ID: ' . $newUserGroup3);
-						$backToAddUserForm = true;
-						$newUserGroup3Error = $strings['441'];
-					}
-					if($newUserGroup4 == '' || !ctype_digit($newUserGroup4)) {
-						unset($newUserGroup4);
-					} elseif((getGroupInfo($newUserGroup4) === false) || ($newUserGroup4 == $businessInfo['business']['owningGroup'] && $effectivePermission['business'] != 'rw')) {
-						// Group is not valid. Unset.
-						logAction('18', 'Group ID: ' . $newUserGroup4);
-						$backToAddUserForm = true;
-						$newUserGroup4Error = $strings['441'];
-					}
-					if($newUserGroup5 == '' || !ctype_digit($newUserGroup5)) {
-						unset($newUserGroup5);
-					} elseif((getGroupInfo($newUserGroup5) === false) || ($newUserGroup5 == $businessInfo['business']['owningGroup'] && $effectivePermission['business'] != 'rw')) {
-						// Group is not valid. Unset.
-						logAction('18', 'Group ID: ' . $newUserGroup5);
-						$backToAddUserForm = true;
-						$newUserGroup5Error = $strings['441'];
-					}
+					
 					
 					if($backToAddUserForm) {
 						logAction('9');
 						$showAddUserForm = true;
 					} else {
 						// Add groups to an array
-						$newUserGroups[] = $newUserGroup1;
-						$newUserGroups[] = $newUserGroup2;
-						$newUserGroups[] = $newUserGroup3;
-						$newUserGroups[] = $newUserGroup4;
-						$newUserGroups[] = $newUserGroup5;
 						
 						foreach($newUserGroups as $id => $group) {
 							// Remove null and empty values
@@ -478,64 +466,207 @@ if (initiateSession()) {
 								"emailAddress" => utf8_encode("$_POST[newUserEmail]"),
 							);
 					
-					$certificate = generateNewCertificate($dn, $newUserPassphrase);
-					$encryptCertificate = true;
-					
-					if($certificate != false) {
-						echo 'Register certificate';
-						$certId = registerCertificate($certificate, $newUserPassphrase, $_SESSION['userId'], $encryptCertificate);
-						
-						// Initialize business user
-						$businessUser['name'] = $newUserName;
-						$businessUser['email'] = $newUserEmail;
-						$businessUser['city'] = $newUserCity;
-						$businessUser['state'] = $newUserState;
-						$businessUser['country'] = $newUserCountry;
-						$businessUser['personalQuota'] = 0;
-						$businessUser['businessQuota'] = 0;
-						$businessUser['certs'] = array($certId);
-						
-						$jsonEntry = json_encode($businessUser);
-						
-						$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
-						$encryptedEntryIv = $encryptedEntry['iv'];
-						$encryptedEntryData = $encryptedEntry['data'];
-						$encryptedEntryTag = $encryptedEntry['tag'];
-						
-						$sql = "INSERT INTO businessUsers (userId, cipherSuite, iv, entry, tag) VALUES ('$_SESSION[userId]', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]')";
-						$conn -> query($sql);
-						$businessUserId = mysqli_insert_id($conn);
-						logAction('16', 'Query string:' . $sql);
-						logAction('11', 'Business user ID: ' . $businessUserId);
-						
-						foreach($userGroups as $group) {
-							$groupInfo = getGroupInfo($group);
-							$groupInfo['members'][] = $businessUserId;
+							$certificate = generateNewCertificate($dn, $newUserPassphrase);
+							$encryptCertificate = true;
 							
-							$jsonEntry = json_encode($groupInfo);
-							$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
-							$encryptedEntryIv = $encryptedEntry['iv'];
-							$encryptedEntryData = $encryptedEntry['data'];
-							$encryptedEntryTag = $encryptedEntry['tag'];
-							
-							$sql = "UPDATE businessGroups SET cipherSuite='$config[currentCipherSuite]', iv='$encryptedEntryIv', entry='$encryptedEntryData', tag='$encryptedEntryTag' WHERE id='$group'";
-							$conn -> query($sql);
-							logAction('16', 'Query string:' . $sql);
-						}						
-						
-						$message = $strings['451'];
-						$loadContent = true;
-					} else {
-						
-						logAction('10');
-						
-						$backToForm = true;
-						$message = $strings['452'];
-						$loadContent = true;
-					}
+							if($certificate != false) {
+								// echo 'Register certificate';
+								$certId = registerCertificate($certificate, $newUserPassphrase, $_SESSION['userId'], $encryptCertificate);
+								
+								// Initialize business user
+								$businessUser['name'] = $newUserName;
+								$businessUser['email'] = $newUserEmail;
+								$businessUser['city'] = $newUserCity;
+								$businessUser['state'] = $newUserState;
+								$businessUser['country'] = $newUserCountry;
+								$businessUser['createdOn'] = date('Y-m-d H:i:s');
+								$businessUser['lastModified'] = '';
+								$businessUser['personalQuota'] = 0;
+								$businessUser['businessQuota'] = 0;
+								$businessUser['certs'] = array($certId);
+								
+								$jsonEntry = json_encode($businessUser);
+								
+								$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
+								$encryptedEntryIv = $encryptedEntry['iv'];
+								$encryptedEntryData = $encryptedEntry['data'];
+								$encryptedEntryTag = $encryptedEntry['tag'];
+								
+								$sql = "INSERT INTO businessUsers (userId, cipherSuite, iv, entry, tag) VALUES ('$_SESSION[userId]', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]')";
+								$conn -> query($sql);
+								$businessUserId = mysqli_insert_id($conn);
+								logAction('16', 'Query string:' . $sql);
+								logAction('11', 'Business user ID: ' . $businessUserId);
+								
+								foreach($userGroups as $group) {
+									$groupInfo = getGroupInfo($group);
+									$groupInfo['members'][] = $businessUserId;
+									
+									$jsonEntry = json_encode($groupInfo);
+									$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
+									$encryptedEntryIv = $encryptedEntry['iv'];
+									$encryptedEntryData = $encryptedEntry['data'];
+									$encryptedEntryTag = $encryptedEntry['tag'];
+									
+									$sql = "UPDATE businessGroups SET cipherSuite='$config[currentCipherSuite]', iv='$encryptedEntryIv', entry='$encryptedEntryData', tag='$encryptedEntryTag' WHERE id='$group'";
+									$conn -> query($sql);
+									logAction('16', 'Query string:' . $sql);
+								}						
+								
+								$message = $strings['451'];
+								$loadContent = true;
+							} else {
+								
+								logAction('10');
+								
+								$backToForm = true;
+								$message = $strings['452'];
+								$loadContent = true;
+							}
 						}
 					}
 					
+				}
+				
+				if($_POST["formAction"] == "editUser" && ctype_digit($_POST["editUser"])) {
+					// Post to edit a user!
+					// First, check if user has the right to edit this user!
+					$effectivePermission = getBusinessManagementPermissions();
+					$editUser = getBusinessUserInfoFromId($_POST["editUser"]);
+					
+					if($editUser !== false) {
+						if($effectivePermission['users'] == 'rw') {
+							$businessInfo = getBusinessInfo($_SESSION['userId']);
+							$editingUser = getBusinessUserInfo($_SESSION['certId']);
+							if(isEnterpriseAdmin($editingUser['id']) && isEnterpriseAdmin($editUser['id'])) {
+								// Editing user is enterprise admin, and tries to edit an enterprise admin. That's OK, but check if it is the business owner to prevent removing it from the Enterprise Admin group...
+								$canEditThisUser = true;
+								logAction('33', 'User edited: (' . $editUser['id'] . ') ' . $editUser['name']);
+								if(isBusinessOwner($editUser['id'])) {
+									$editedUserIsBusinessOwner = true;
+									logAction('34', 'User edited: (' . $editUser['id'] . ') ' . $editUser['name']);
+								}
+							} elseif(!isEnterpriseAdmin($editUser['id'])) {
+								// User has user management right and does not need to edit an enterprise admin... that's OK.
+								$canEditThisUser = true;
+								logAction('32', 'User edited: (' . $editUser['id'] . ') ' . $editUser['name']);
+							} else {
+								// probably trying to edit an enterprise admin while not being one. Probable hacking attempt
+								logAction('30', 'User edited: (' . $editUser['id'] . ') ' . $editUser['name']);
+							}
+							
+						} else {
+							$canEditThisUser = false;
+							logAction('31', 'User edited: (' . $editUser['id'] . ') ' . $editUser['name']);
+						}
+					} else {
+						$canEditThisUser = false;
+						// Trying to edit a non existent user, or one from another business account! Probably a hacking attempt!
+						logAction('26', 'User edited: (' . $editUser['id'] . ') ' . $editUser['name']);
+					}
+					
+					if ($canEditThisUser) {
+						$editUserName = htmlOutput($_POST["editUserName"]);
+						$editUserEmail = htmlOutput($_POST["editUserEmail"]);
+						$editUserCity = htmlOutput($_POST["editUserCity"]);
+						$editUserState = htmlOutput($_POST["editUserState"]);
+						$editUserCountry = htmlOutput($_POST["editUserCountry"]);
+						
+						if(strlen($editUserName) < 1) {
+							$backToEditUserForm = true;
+							$editUserNameError = $strings['439'];
+						} elseif(strlen($editUserName) > 256) {
+							$backToEditUserForm = true;
+							$editUserNameError = $strings['439'];
+						}
+						
+						if(strlen($editUserEmail) > 320) {
+							$backToEditUserForm = true;
+							$editUserEmailError = $strings['100'];
+						} elseif(strlen($editUserEmail) < 1) {
+							$backToEditUserForm = true;
+							$editUserEmailError = $strings['101'];
+						} elseif(!filter_var($editUserEmail, FILTER_VALIDATE_EMAIL)) {
+							$backToEditUserForm = true;
+							$editUserEmailError = $strings['102'];
+						}
+						
+						if(!validateCountry($editUserCountry)) {
+							$backToEditUserForm = true;
+							$editUserCountryError = $strings['103'];
+						}
+						
+						if(strlen($editUserState) > 256) {
+							$backToEditUserForm = true;
+							$editUserStateError = $strings['104'];
+						} elseif(strlen($editUserState) < 1) {
+							$backToEditUserForm = true;
+							$editUserStateError = $strings['105'];
+						}
+						
+						if(strlen($editUserCity) > 256) {
+							$backToEditUserForm = true;
+							$editUserCityError = $strings['106'];
+						} elseif(strlen($editUserCity) < 1) {
+							$backToEditUserForm = true;
+							$editUserCityError = $strings['107'];
+						}
+						
+						// var_dump($_POST['groups']);
+						foreach($_POST['groups'] as $key => $group){
+							if(!ctype_digit($group)) {
+								$group = htmlOutput($group);
+								unset($_POST['groups'][$key]);
+								$backToEditUserForm = true;
+								$editUserGroupError = $strings['441'];
+								logAction('36', 'Group ID: ' . $group);
+							} else {
+								//OK that's a number, check if number is OK...
+								if((getGroupInfo($group) === false) || ($group == $businessInfo['business']['owningGroup'] && $effectivePermission['business'] != 'rw')) {
+									logAction('35', 'Group ID: ' . $group);
+									$backToEditUserForm = true;
+									$editUserGroupError = $strings['441'];
+								} else {
+									$editUserGroups[] = $group;
+								}
+							}
+						}
+						
+						if($editedUserIsBusinessOwner === true) {
+							// make sure there was no attempt to take the business owner out!
+							if(!in_array($businessInfo['business']['owningGroup'], $editUserGroups)) {
+								$editUserGroups[] = $businessInfo['business']['owningGroup'];
+								logAction('38', 'Group ID: ' . $businessInfo['business']['owningGroup']);
+								$backToEditUserForm = true;
+								$editUserGroupError = $strings['441'];
+							}
+						}
+						
+						
+					} else {
+						logAction('29', 'User edited: (' . $editUser['id'] . ') ' . $editUser['name']);
+						$showEditUserForm = true;
+						$backToEditUserForm = true;
+					}
+					
+					if($backToEditUserForm) {
+						logAction('28', 'User edited: (' . $editUser['id'] . ') ' . $editUser['name']);
+						$showEditUserForm = true;
+					} else {
+						// All good! update user info
+						logAction('41', 'User ID: ' . $editUser['id'] . ', Name: ' . $editUser['name']);
+						
+						$editUser['name'] = $editUserName;
+						$editUser['email'] = $editUserEmail;
+						$editUser['city'] = $editUserCity;
+						$editUser['state'] = $editUserState;
+						$editUser['country'] = $editUserCountry;
+						
+						updateUserInfo($editUser['id'], $editUser);
+						
+						updateUserGroups($editUser['id'], $editUserGroups);
+						
+					}
 				}
 				
 				

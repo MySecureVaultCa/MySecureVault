@@ -237,11 +237,16 @@ if (initiateSession()) {
 					// Initialize business user
 					$businessUser['name'] = $_SESSION['fullName'];
 					$businessUser['email'] = $_SESSION['emailAddress'];
+					$businessUser['city'] = $_SESSION['certCity'];
+					$businessUser['state'] = $_SESSION['certState'];
+					$businessUser['country'] = $_SESSION['certCountry'];
 					$businessUser['personalQuota'] = 0;
 					$businessUser['businessQuota'] = 0;
 					$businessUser['certs'] = array($_SESSION['certId']);
 					$businessUser['lastLogin'] = date("Y-m-d H:i:s");
 					$businessUser['lastActivity'] = date("Y-m-d H:i:s");
+					$businessUser['createdOn'] = date('Y-m-d H:i:s');
+					$businessUser['lastModified'] = '';
 					
 					
 					$jsonEntry = json_encode($businessUser);
