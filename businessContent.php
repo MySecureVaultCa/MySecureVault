@@ -240,7 +240,7 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 								$certInfo = getBusinessUserCertInfo($_SESSION['certId']);
 								
 								echo '<pre>';
-									var_dump($businessGroups);
+									var_dump($userInfo);
 								echo '</pre>';
 							}
 						} else {

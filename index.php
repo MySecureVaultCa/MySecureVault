@@ -326,6 +326,18 @@ if (initiateSession()) {
 							}
 							header("HTTP/1.1 301 Moved Permanently");
 							header("Location: profile.php");
+						} else {
+							unset($_SESSION['encryptionKey']);
+							unset($_SESSION['userId']);
+							unset($_SESSION['certId']);
+							unset($_SESSION['certSerial']);
+							unset($_SESSION['fullName']);
+							unset($_SESSION['emailAddress']);
+							unset($_SESSION['certFingerprint']);
+							unset($_SESSION['certCountry']);
+							unset($_SESSION['certState']);
+							unset($_SESSION['certCity']);
+							unset($_SESSION['certPublicKey']);
 						}
 						
 					} else {
@@ -462,7 +474,6 @@ if (initiateSession()) {
 				$loadContent = false;
 				
 			} else {
-				echo 'NOK $certificate = false';
 				$backToForm = true;
 				$message = "Impossible de g&eacute;n&eacute;rer le certificat!";
 				$loadContent = true;

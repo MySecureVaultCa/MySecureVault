@@ -108,6 +108,14 @@ if (initiateSession()) {
 					logAction('6');
 				}
 				
+				if($_GET['action'] == 'cancelEditGroup') {
+					logAction('61');
+				}
+				
+				if($_GET['action'] == 'cancelIssueCert') {
+					logAction('53');
+				}
+				
 				if(ctype_digit($_GET['editUser'])) {
 					$editUser = getBusinessUserInfoFromId($_GET['editUser']);
 					if( $editUser !== false ) {
@@ -135,10 +143,81 @@ if (initiateSession()) {
 					}
 				}
 				
+				if(ctype_digit($_GET['issueCert'])) {
+					$userId = htmlOutput($_GET['issueCert']);
+					$userInfo = getBusinessUserInfoFromId($userId);
+					$currentUser = getBusinessUserInfo($_SESSION['certId']);
+					if( $userInfo !== false ) {
+						// The user is valid. Since any user manager or enterprise admin can ISSUE a certificate for any user, let's process the request and show the certificate issuance form!
+						$showIssueCertificateForm = true;
+						logAction('52', 'Issue certificate for user: ' . $userId) . ', User name: ' . $userInfo['name'];
+					} else {
+						logAction('51', 'User ID provided: ' . $userId);
+						$message = $strings['467'];
+					}
+				}
+				
+				if(ctype_digit($_GET['editGroup'])) {
+					$editGroup = getGroupInfo($_GET['editGroup']);
+					$businessInfo = getBusinessInfo($_SESSION['userId']);
+					if($editGroup !== false) {
+						if($editGroup['id'] != $businessInfo['business']['owningGroup'] && $editGroup['id'] != $businessInfo['billing']['owningGroup'] && $editGroup['id'] != $businessInfo['users']['owningGroup'] && $editGroup['id'] != $businessInfo['logging']['owningGroup']) {
+							// OK to edit this group...
+							$showEditGroupForm = true;
+							logAction('62', 'Group: (ID: ' . $editGroup['id'] . ') ' . $editGroup['name']['en']);
+							
+							$editGroupId = $editGroup['id'];
+							$editGroupNameEn = $editGroup['name']['en'];
+							$editGroupNameFr = $editGroup['name']['fr'];
+							$editGroupDescriptionEn = $editGroup['description']['en'];
+							$editGroupDescriptionFr = $editGroup['description']['fr'];
+							
+						} else {
+							// Trying to edit one of the system groups. This is not permitted!
+							logAction('60', 'Group ID: ' . $editGroup['id'] . ', Group name: ' . $editGroup['name']['en']);
+						}
+					} else {
+						logAction('59', 'Group ID provided: ' . $_GET['editGroup']);
+					}
+				}
+				
+				if(ctype_digit($_GET['deleteCert'])) {
+					$certUser = getBusinessUserInfo($_GET['deleteCert']);
+					if( $certUser !== false ) {
+						if($_SESSION['certId'] != $_GET['deleteCert']) {
+							$currentUser = getBusinessUserInfo($_SESSION['certId']);
+							if((isEnterpriseAdmin($currentUser['id']) && isEnterpriseAdmin($certUser['id'])) || (isEnterpriseAdmin($certUser['id']) === false)) {
+								// Make sure the certificate was revoked before being deleted.
+								$certId = mysqli_real_escape_string($conn, $_GET['deleteCert']);
+								$sql = "SELECT id, revoked, deleted FROM certs WHERE id='$certId' AND revoked='1' AND deleted='0'";
+								$db_rawCert = $conn -> query($sql);
+								if(mysqli_num_rows($db_rawCert) == 1) {
+									// all controls passed...
+									$sql = "UPDATE certs SET deleted='1' WHERE id='$certId'";
+									$conn -> query($sql);
+									$message = $strings['65'];
+									logAction('49', 'User: (ID: ' . $certUser['id'] . ') ' . $certUser['name'] . ', Certificate ID: ' . htmlOutput($_GET['deleteCert']));
+								} else {
+									logAction('50', 'User: (ID: ' . $certUser['id'] . ') ' . $certUser['name'] . ', Certificate ID: ' . htmlOutput($_GET['deleteCert']));
+								}
+							} else {
+								logAction('46', 'User: (ID: ' . $certUser['id'] . ') ' . $certUser['name'] . ', Certificate ID: ' . htmlOutput($_GET['deleteCert']));
+								$message = $strings['464'];
+							}
+						} else {
+							logAction('47', 'User: (ID: ' . $certUser['id'] . ') ' . $certUser['name'] . ', Certificate ID: ' . htmlOutput($_GET['deleteCert']));
+							$message = $strings['464'];
+						}
+					} else {
+						logAction('48', 'Certificate ID provided: ' . htmlOutput($_GET['deleteCert']));
+						$message = $strings['464'];
+					}
+				}
+				
 				if(ctype_digit($_GET['deleteUser'])) {
 					
 					$deleteUser = getBusinessUserInfoFromId($_GET['deleteUser']);
-					if( $deleteUser !== false ) {
+					if( $deleteUser !== false && $deleteUser['deleted'] != '1') {
 						$currentUser = getBusinessUserInfo($_SESSION['certId']);
 						if((isEnterpriseAdmin($currentUser['id']) && isEnterpriseAdmin($deleteUser['id'])) || (isEnterpriseAdmin($deleteUser['id']) === false)) {
 							if(isBusinessOwner($deleteUser['id'])) {
@@ -146,6 +225,7 @@ if (initiateSession()) {
 								$message = $strings['462'];
 							} else {
 								logAction('45', 'User: (ID: ' . $deleteUser['id'] . ') ' . $deleteUser['name']);
+								$message = $strings['476'];
 								$deleteUser['deleted'] = '1';
 								updateUserInfo($deleteUser['id'], $deleteUser);
 								updateUserGroups($deleteUser['id'], array());
@@ -162,7 +242,7 @@ if (initiateSession()) {
 				
 				if(ctype_digit($_GET['revokeCert'])) {
 					$certId = mysqli_real_escape_string($conn, $_GET['revokeCert']);
-					$sql = "SELECT id, revoked FROM certs WHERE id='$certId' AND userId='$_SESSION[userId]'";
+					$sql = "SELECT id, revoked FROM certs WHERE id='$certId' AND userId='$_SESSION[userId]' AND revoked='0'";
 					$db_rawCert = $conn->query($sql);
 					logAction('16', 'Query string:' . $sql);
 					if(mysqli_num_rows($db_rawCert) == 1) {
@@ -175,6 +255,7 @@ if (initiateSession()) {
 							$conn -> query($sql);
 							logAction('16', 'Query string:' . $sql);
 							logAction('21', 'Certificate ID:' . $certId . ', Business user ID: ' . $businessUserInfo['id'] . ', Name: ' . $businessUserInfo['name'] . ' (' . $businessUserInfo['email'] . ')');
+							$message = $strings['69'];
 						} else {
 							logAction('19', 'Certificate ID:' . $certId . ', User: (ID: ' . $businessUserInfo['id'] . ') ' . $businessUserInfo['name']);
 							$message = $strings['71'];
@@ -187,7 +268,7 @@ if (initiateSession()) {
 				
 				if(ctype_digit($_GET['unrevokeCert'])) {
 					$certId = mysqli_real_escape_string($conn, $_GET['unrevokeCert']);
-					$sql = "SELECT id, revoked FROM certs WHERE id='$certId' AND userId='$_SESSION[userId]'";
+					$sql = "SELECT id, revoked FROM certs WHERE id='$certId' AND userId='$_SESSION[userId]' AND revoked='1'";
 					$db_rawCert = $conn->query($sql);
 					logAction('16', 'Query string:' . $sql);
 					if(mysqli_num_rows($db_rawCert) == 1) {
@@ -200,6 +281,7 @@ if (initiateSession()) {
 							$conn -> query($sql);
 							logAction('16', 'Query string:' . $sql);
 							logAction('22', 'Certificate ID:' . $certId . ', Business user ID: ' . $businessUserInfo['id'] . ', Name: ' . $businessUserInfo['name'] . ' (' . $businessUserInfo['email'] . ')');
+							$message = $strings['73'];
 						} else {
 							logAction('23', 'Certificate ID:' . $certId . ', User: (ID: ' . $businessUserInfo['id'] . ') ' . $businessUserInfo['name']);
 							$message = $strings['71'];
@@ -534,7 +616,7 @@ if (initiateSession()) {
 					$effectivePermission = getBusinessManagementPermissions();
 					$editUser = getBusinessUserInfoFromId($_POST["editUser"]);
 					
-					if($editUser !== false) {
+					if($editUser !== false && $editUser['deleted'] != '1' ) {
 						if($effectivePermission['users'] == 'rw') {
 							$businessInfo = getBusinessInfo($_SESSION['userId']);
 							$editingUser = getBusinessUserInfo($_SESSION['certId']);
@@ -669,6 +751,183 @@ if (initiateSession()) {
 					}
 				}
 				
+				if($_POST['formAction'] == 'issueCert' && ctype_digit($_POST['certUserId'])) {
+					$userId = htmlOutput($_POST['certUserId']);
+					$userInfo = getBusinessUserInfoFromId($userId);
+					$currentUser = getBusinessUserInfo($_SESSION['certId']);
+					if( $userInfo !== false && $userInfo['deleted'] != '1' ) {
+						// The user is valid. Since any user manager or enterprise admin can ISSUE a certificate for any user, let's validate everything.
+						logAction('55', 'Issue certificate for user: ' . $userId . ', User name: ' . $userInfo['name'] . ' (' . $userInfo['email'] . ')');
+						
+						$certDevice = htmlOutput($_POST['certDevice']);
+						$certPassType = $_POST['certPassType'];
+						$certPassphrase = $_POST['certPassphrase'];
+						$certPassphraseRetype = $_POST['certPassphraseRetype'];
+						$certDownloadPassphrase = $_POST['certDownloadPassphrase'];
+						
+						if($certPassType == 'downloadPassphrase') {
+							if(strlen($certDownloadPassphrase) < 15) {
+								unset($certDownloadPassphrase);
+								$backToIssueCertificateForm = true;
+								$certDownloadPassphraseError = $strings['283'];
+							} elseif(strlen($certDownloadPassphrase) > 128) {
+								unset($certDownloadPassphrase);
+								$backToIssueCertificateForm = true;
+								$certDownloadPassphraseError = $strings['448'];
+							}
+						} elseif($certPassType == 'userPassphrase') {
+							if(strlen($certPassphrase) < 15) {
+								unset($certPassphrase);
+								unset($certPassphraseRetype);
+								$backToIssueCertificateForm = true;
+								$certPassphraseError = $strings['449'];
+							} elseif(strlen($certPassphrase) > 128) {
+								unset($certPassphrase);
+								unset($certPassphraseRetype);
+								$backToIssueCertificateForm = true;
+								$certPassphraseError = $strings['448'];
+							} elseif($certPassphrase != $certPassphraseRetype) {
+								unset($certPassphrase);
+								unset($certPassphraseRetype);
+								$backToIssueCertificateForm = true;
+								$certPassphraseRetypeError = $strings['110'];
+							}
+						} else {
+							// No option selected, show error!
+							unset($certDownloadPassphrase);
+							unset($certPassphrase);
+							unset($certPassphraseRetype);
+							$backToIssueCertificateForm = true;
+							$certPassTypeError = $strings['450'];
+						}
+						
+						if($backToIssueCertificateForm === true) {
+							$showIssueCertificateForm = true;
+							logAction('56', 'Issue certificate for user: ' . $userId . ', User name: ' . $userInfo['name'] . ' (' . $userInfo['email'] . ')');
+						} else {
+							// All validations successful. Process.
+							
+							if($certPassType == 'userPassphrase') {
+								if(strlen($_POST['certDevice']) > 0) {
+									$certDN = $userInfo['name'] . ' - ' . $_POST['certDevice'];
+								} else {
+									$certDN = $userInfo['name'];
+								}
+								$dn = array(
+									"countryName" => utf8_encode("$userInfo[country]"),
+									"stateOrProvinceName" => utf8_encode("$userInfo[state]"),
+									"localityName" => utf8_encode("$userInfo[city]"),
+									"organizationName" => "None",
+									"organizationalUnitName" => "None",
+									"commonName" => utf8_encode("$certDN"),
+									"emailAddress" => utf8_encode("$userInfo[email]"),
+								);
+								
+								$certificate = generateNewCertificate($dn, $certPassphrase);
+								
+								if($certificate != false) {
+									$certId = registerCertificate($certificate, $certPassphrase, $_SESSION['userId'], true);
+									logAction('57', 'New certificate ID: ' . $certId . '');
+									
+									$userInfo['certs'][] = $certId;
+									updateUserInfo($userId, $userInfo);
+									
+									$message = $strings['477'];
+									
+								} else {
+									logAction('58', 'New certificate ID: ' . $certId . '');
+								}
+							} else {
+								echo 'Not implemented yet';
+							}
+							
+							
+						}
+						
+						
+					} else {
+						logAction('54', 'User ID provided: ' . $userId);
+						$message = $strings['467'];
+					}					
+				}
+				
+				if($_POST['formAction'] == 'addGroup') {
+					$englishGroupName = htmlOutput($_POST['englishGroupName']);
+					$frenchGroupName = htmlOutput($_POST['frenchGroupName']);
+					$englishGroupDescription = htmlOutput($_POST['englishGroupDescription']);
+					$frenchGroupDescription = htmlOutput($_POST['frenchGroupDescription']);
+					
+					if(strlen($englishGroupName) < 1) {
+						$englishGroupNameError = $strings['485'];
+						$backToAddGroupForm = true;
+					} elseif(strlen($englishGroupName) > 256) {
+						$englishGroupNameError = $strings['486'];
+						$backToAddGroupForm = true;
+					}
+					
+					if(strlen($frenchGroupName) < 1) {
+						$frenchGroupName = $englishGroupName;
+					} elseif(strlen($frenchGroupName) > 256) {
+						$frenchGroupNameError = $strings['486'];
+						$backToAddGroupForm = true;
+					}
+					
+					if(strlen($englishGroupDescription) < 1) {
+						$englishGroupDescriptionError = $strings['488'];
+						$backToAddGroupForm = true;
+					} elseif(strlen($englishGroupDescription) > 1024) {
+						$englishGroupDescriptionError = $strings['487'];
+						$backToAddGroupForm = true;
+					}
+					
+					if(strlen($frenchGroupDescription) < 1) {
+						$frenchGroupDescription = $englishGroupDescription;
+					} elseif(strlen($frenchGroupDescription) > 1024) {
+						$frenchGroupDescriptionError = $strings['487'];
+						$backToAddGroupForm = true;
+					}
+					
+					if($backToAddGroupForm) {
+						$showAddGroupForm = true;
+					} else {
+						// All validations are good, proceed with group creation...
+						
+						$group['name']['en'] = $englishGroupName;
+						$group['name']['fr'] = $frenchGroupName;
+						$group['members'] = array();
+						$group['description']['en'] = $englishGroupDescription;
+						$group['description']['fr'] = $frenchGroupDescription;
+						
+						$jsonEntry = json_encode($group);
+						$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
+						$encryptedEntryIv = $encryptedEntry['iv'];
+						$encryptedEntryData = $encryptedEntry['data'];
+						$encryptedEntryTag = $encryptedEntry['tag'];
+						
+						$sql = "INSERT INTO businessGroups (userId, cipherSuite, iv, entry, tag) VALUES ('$_SESSION[userId]', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]')";
+						$conn -> query($sql);
+					}
+					
+				}
+				
+				if($_POST['formAction'] == 'editGroup' && ctype_digit($_POST['editGroup'])) {
+					$editGroup = getGroupInfo($_POST['editGroup']);
+					$businessInfo = getBusinessInfo($_SESSION['userId']);
+					if($editGroup !== false) {
+						if($editGroup['id'] != $businessInfo['business']['owningGroup'] && $editGroup['id'] != $businessInfo['billing']['owningGroup'] && $editGroup['id'] != $businessInfo['users']['owningGroup'] && $editGroup['id'] != $businessInfo['logging']['owningGroup']) {
+							// All validations passed... process information!
+							$editGroupId = $editGroup['id'];
+							/*
+							$editGroupNameEn = 
+							$editGroupNameFr
+							*/
+						} else {
+							
+						}
+					} else {
+						
+					}
+				}
 				
 			} else {
 				// Nothing to do here

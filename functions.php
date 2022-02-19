@@ -1427,6 +1427,8 @@ function getBusinessUserInfo($certId) {
 	// This function returns the user's information based on the certificate ID provided
 	global $conn;
 	
+	$businessUser = false;
+	
 	$sql = "SELECT id, cipherSuite, iv, entry, tag FROM businessUsers WHERE userId='$_SESSION[userId]'";
 	$db_rawUsers = $conn -> query($sql);
 	while ($db_user = $db_rawUsers -> fetch_assoc()) {
@@ -1576,7 +1578,7 @@ function getAllBusinessGroups() {
 function businessGroupsList($selected) {
 	$effectivePermission = getBusinessManagementPermissions();
 	$businessInfo = getBusinessInfo($_SESSION['userId']);
-	
+	$language = $_SESSION['language'];
 	$groups = getAllBusinessGroups();
 	$htmlString = '<option></option>';
 	
@@ -1585,13 +1587,13 @@ function businessGroupsList($selected) {
 			if($effectivePermission['business'] == 'rw') {
 				if ($selected == $group['id']){ $select = ' selected';}
 				
-				$htmlString .= '<option value="' . $group['id'] . '"' . $select . '>' . $group['name'] . '</option>';
+				$htmlString .= '<option value="' . $group['id'] . '"' . $select . '>' . $group['name'][$language] . '</option>';
 				unset($select);
 			}
 		} else {
 			if ($selected == $group['id']){ $select = ' selected';}
 				
-			$htmlString .= '<option value="' . $group['id'] . '"' . $select . '>' . $group['name'] . '</option>';
+			$htmlString .= '<option value="' . $group['id'] . '"' . $select . '>' . $group['name'][$language] . '</option>';
 			unset($select);
 		}
 	}
@@ -1608,6 +1610,7 @@ function businessGroupsCheckboxes($userGroups=array(), $forUser='') {
 	$businessUser = getBusinessUserInfo($_SESSION['certId']);
 	$groups = getAllBusinessGroups();
 	$htmlString = '<div class="w3-row">';
+	$language = $_SESSION['language'];
 	
 	foreach($groups as $group) {
 		if($group['id'] == $businessInfo['business']['owningGroup']) {
@@ -1619,14 +1622,14 @@ function businessGroupsCheckboxes($userGroups=array(), $forUser='') {
 					$disabled = ' disabled="disabled"';
 					$htmlString .='<input type="hidden" name="groups[]" value="' . $group['id'] . '">';
 				}
-				$htmlString .= '<div class="w3-padding w3-half"> <input class="w3-check" type="checkbox" name="groups[]" value="' . $group['id'] . '"' . $checked . $disabled . '> ' . $group['name'] . '</div>';
+				$htmlString .= '<div class="w3-padding w3-half"> <input class="w3-check" type="checkbox" name="groups[]" value="' . $group['id'] . '"' . $checked . $disabled . '> ' . $group['name'][$language] . '</div>';
 				unset($checked);
 				unset($disabled);
 			}
 		} else {
 			if (in_array($group['id'], $userGroups)){ $checked = ' checked';}
 				
-			$htmlString .= '<div class="w3-padding w3-half"> <input class="w3-check" type="checkbox" name="groups[]" value="' . $group['id'] . '"' . $checked . '> ' . $group['name'] . '</div>';
+			$htmlString .= '<div class="w3-padding w3-half"> <input class="w3-check" type="checkbox" name="groups[]" value="' . $group['id'] . '"' . $checked . '> ' . $group['name'][$language] . '</div>';
 			unset($checked);
 		}
 	}
@@ -1716,6 +1719,8 @@ function updateUserGroups($userId, $groups) {
 	// $groups is an array that contains all the user's groups.
 	$businessGroups = getAllBusinessGroups();
 	$userInfo = getBusinessUserInfoFromId($userId);
+	$language = $_SESSION['language'];
+	
 	foreach($businessGroups as $group) {
 		if(in_array($group['id'], $groups)) {
 			// User should be a member of this group
@@ -1723,7 +1728,7 @@ function updateUserGroups($userId, $groups) {
 			if(!in_array($userId, $group['members'])) {
 				// User is not already a member of this group... add it!
 				$group['members'][] = $userId;
-				logAction('39', 'User ID: ' . $userId . ', Name: ' . $userInfo['name'] . ', Group ID:' . $group['id'] . ', Group name:' . $group['name']);
+				logAction('39', 'User ID: ' . $userId . ', Name: ' . $userInfo['name'] . ', Group ID:' . $group['id'] . ', Group name:' . $group['name'][$language]);
 				$updated = true;
 			}
 		} else {
@@ -1734,7 +1739,7 @@ function updateUserGroups($userId, $groups) {
 				unset($group['members'][$membershipKey]);
 				// Reindex array to remove empty elements
 				$group['members'] = array_values($group['members']);
-				logAction('40', 'User ID: ' . $userId . ', Name: ' . $userInfo['name'] . ', Group ID:' . $group['id'] . ', Group name:' . $group['name']);
+				logAction('40', 'User ID: ' . $userId . ', Name: ' . $userInfo['name'] . ', Group ID:' . $group['id'] . ', Group name:' . $group['name'][$language]);
 				$updated = true;
 			}
 		}
@@ -1758,7 +1763,7 @@ function updateUserGroups($userId, $groups) {
 function getBusinessUserCertInfo($certId) {
 	global $conn;
 	
-	$sql = "SELECT id, serial, revoked, ivCertData, encryptedCertData, tagCertData, cipherSuiteCertData FROM certs WHERE id='$certId'";
+	$sql = "SELECT id, serial, revoked, deleted, ivCertData, encryptedCertData, tagCertData, cipherSuiteCertData FROM certs WHERE id='$certId'";
 	$db_rawCert = $conn -> query($sql);
 	$db_cert = $db_rawCert -> fetch_assoc();
 	
@@ -1768,6 +1773,7 @@ function getBusinessUserCertInfo($certId) {
 	$certInfo['id'] = $certId;
 	$certInfo['serial'] = $db_cert['serial'];
 	$certInfo['revoked'] = $db_cert['revoked'];
+	$certInfo['deleted'] = $db_cert['deleted'];
 	
 	$currentDate = date('Y-m-d H:i:s');
 	$expirationUnix = strtotime($certInfo['validTo']);

@@ -263,9 +263,11 @@ if (initiateSession()) {
 					
 				
 					// Initialize enterprise admins group
-					$businessGroup['name'] = 'Enterprise Admin';
+					$businessGroup['name']['en'] = 'Enterprise Admins';
+					$businessGroup['name']['fr'] = 'Administrateurs de l\'entreprise';
 					$businessGroup['members'] = array($businessUserId);
-					$businessGroup['description'] = $strings['412'];
+					$businessGroup['description']['en'] = 'Members of this group have all the rights in the organization. Please use responsibly.';
+					$businessGroup['description']['fr'] = 'Les membres de ce groupe ont tous les droits dans l\'organisation. Utilisez de fa&ccedil;on responsable.';
 					
 					$jsonEntry = json_encode($businessGroup);
 					
@@ -280,9 +282,11 @@ if (initiateSession()) {
 					
 					
 					// Initialize billing admins group
-					$businessGroup['name'] = 'Billing Admin';
+					$businessGroup['name']['en'] = 'Billing Admins';
+					$businessGroup['name']['fr'] = 'Administrateurs de facturation';
 					$businessGroup['members'] = array($businessUserId);
-					$businessGroup['description'] = $strings['413'];
+					$businessGroup['description']['en'] = 'Members of this group can manage billing information and licences.';
+					$businessGroup['description']['fr'] = 'Les membres de ce groupe peuvent g&eacute;rer les renseignements de facturation et les licences.';
 					
 					$jsonEntry = json_encode($businessGroup);
 					
@@ -297,9 +301,11 @@ if (initiateSession()) {
 					
 					
 					// Initialize User managers group
-					$businessGroup['name'] = 'User Manager';
+					$businessGroup['name']['en'] = 'User Managers';
+					$businessGroup['name']['fr'] = 'Gestionnaires d\'utilisateurs';
 					$businessGroup['members'] = array($businessUserId);
-					$businessGroup['description'] = $strings['417'];
+					$businessGroup['description']['en'] = 'Members of this group can manage users and groups, and can create folders at the root to delegate rights to other users.';
+					$businessGroup['description']['fr'] = 'Les membres de ce groupe peuvent g&eacute;rer les utilisateurs et les groupes, et peuvent cr&eacute;&eacute;er des dossiers &agrave; la racine pour d&eacute;l&eacute;guer des droits aux utilisateurs.';
 					
 					$jsonEntry = json_encode($businessGroup);
 					
@@ -314,9 +320,11 @@ if (initiateSession()) {
 					
 					
 					// Initialize Logging group
-					$businessGroup['name'] = 'Logging';
+					$businessGroup['name']['en'] = 'Logging';
+					$businessGroup['name']['fr'] = 'Journalisation';
 					$businessGroup['members'] = array($businessUserId);
-					$businessGroup['description'] = $strings['455'];
+					$businessGroup['description']['en'] = 'Members of this group can manage logging options and see all logs.';
+					$businessGroup['description']['fr'] = 'Les membres de ce groupe peuvent g&eacute;rer les options de journalisation et consulter l\'ensemble des journaux.';
 					
 					$jsonEntry = json_encode($businessGroup);
 					
