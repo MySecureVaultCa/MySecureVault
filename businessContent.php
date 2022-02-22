@@ -238,9 +238,10 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 								$userBusinessPermissions = getBusinessManagementPermissions();
 								$businessGroups = getAllBusinessGroups();
 								$certInfo = getBusinessUserCertInfo($_SESSION['certId']);
+								$rootFolder = getRootFolder();
 								
 								echo '<pre>';
-									var_dump($userInfo);
+									var_dump($rootFolder);
 								echo '</pre>';
 							}
 						} else {

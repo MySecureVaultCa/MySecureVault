@@ -348,7 +348,7 @@ if (initiateSession()) {
 					$businessFolder['name'] = '/';
 					$businessFolder['parentFolder'] = '';
 					$businessFolder['owner'] = $businessUserId;
-					$businessFolder['owningGroup'] = $businessGroupId;
+					$businessFolder['owningGroup'] = $enterpriseAdminGroupId;
 					$businessFolder['sharedWith'] = array();
 					$businessFolder['acl']['u'] = 'rws';
 					$businessFolder['acl']['g'] = 'rws';

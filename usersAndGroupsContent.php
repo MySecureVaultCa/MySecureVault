@@ -132,6 +132,13 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 			}
 		}
 		
+		function deleteGroup(groupId, groupName) {
+			var r = confirm("<?php echo javascriptEscape($strings['492']); ?>:\n" + groupName);
+			if ( r == true ) {
+				document.location = "usersAndGroups.php?deleteGroup=" + groupId;
+			}
+		}
+		
 		function changePasswordMethod() {
 			if(document.getElementById('userPassphraseButton').checked) {
 			  document.getElementById('downloadPassphrase').style.display = 'none';
@@ -437,93 +444,98 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 																
 														echo '</div>
 													</div>
-													<div id="user' . $user['id'] . '" style="display:none" class="">
-															<h5 style="margin-bottom: 0px;" class="w3-light-grey w3-padding"><a href="javascript:showhide(\'userInfo' . $user['id'] . '\')">' . $strings['463'] . '</a></h5>
-															<div class="w3-padding" id="userInfo' . $user['id'] . '" style="display:none;">
-																' . $strings['429'] . ': ' . $user['name'] . '<br>
-																' . $strings['12'] . ': ' . $user['email'] . '<br>
-																' . $user['city'] . ', ' . $user['state'] . ', ' . $user['country'] . '
-															</div>
-																
-														
-															<h5 style="margin-bottom: 0px;" class="w3-light-grey w3-padding"><a href="javascript:showhide(\'userGroups' . $user['id'] . '\')">' . $strings['423'] . '</a></h5>
-															<div class="w3-padding" id="userGroups' . $user['id'] . '" style="display:none;">';
-															foreach($userGroups as $group) {
-																$groupInfo = getGroupInfo($group);
-																echo '<div title="' . $groupInfo['description'][$language] . '">' . $groupInfo['name'][$language] . '</div>';
-															}
-															echo '
-															</div>
-														
-															<h5 style="margin-bottom: 0px;" class="w3-light-grey w3-padding"><a href="javascript:showhide(\'userCerts' . $user['id'] . '\')">' . $strings['424'] . '</a></h5>
-															<div id="userCerts' . $user['id'] . '" class="w3-padding" style="display:none;">
-																<a href="usersAndGroups.php?issueCert=' . $user['id'] . '" class="w3-button w3-blue w3-margin">' . $strings['466'] . ' <i class="fa fa-plus-circle"></i></a>
-																<div class="w3-row">
-																	';
-																	$certCount = 0;
-																	foreach($user['certs'] as $cert) {
-																		$certInfo = getBusinessUserCertInfo($cert);
-																		
-																		if($certInfo['deleted'] !== '1') {
-																			$certCount++;
-																			// Display only certificates that are NOT deleted...
-																			echo '
-																			<div class="w3-padding w3-half">
-																				<div class="w3-card-4">
-																					<div style="border-top: 0px; border-bottom: 0px; margin-top:0px;" class="w3-padding w3-'; if($certInfo['revoked'] == '1') { echo 'red'; } else { echo 'green'; } echo '"><i class="fa fa-id-card-o"></i> ' . utf8_decode($certInfo['fullName']) . ' (' . $certInfo['emailAddress'] . ')</div>
-																					<div class="w3-padding wrapLongText">
-																						' . $strings['79'] . ': ' . $certInfo['serial'] . '<br>
-																						' . $strings['234'] . ':' . $certInfo['validTo'] . ' <span class="w3-small">(' . $certInfo['daysToExpire'] . ' ' . $strings['258'] . ')</span><br>
-																						<span class="w3-small">' . $strings['82'] . ': ' . $certInfo['fingerprint'] . '</span><br>
-																						' . $strings['426'] . ': ';
-																						if($certInfo['revoked'] == '0') {
-																							// Certificate is active
-																							echo '<span class="w3-text-green">' . $strings['425'];
-																							if($_SESSION['certId'] == $certInfo['id']) { echo ' - <b>' . $strings['475'] . '</b>'; }
-																							echo '</span><br>
-																							
-																							<div style="height:16px;"></div>';
-																							if (isEnterpriseAdmin($currentUser['id']) && isEnterpriseAdmin($user['id'])) {
-																								echo '<div class="w3-padding-small" style="display:inline-block;"><a class="w3-btn w3-blue" href="' . $_SERVER["PHP_SELF"] . '?downloadCert=' . $certInfo['id'] . '&reload=no">' . $strings['83'] . ' <i class="fa fa-download"></i></a></div>';
-																							} elseif (isEnterpriseAdmin($user['id']) === false) {
-																								echo '<div class="w3-padding-small" style="display:inline-block;"><a class="w3-btn w3-blue" href="' . $_SERVER["PHP_SELF"] . '?downloadCert=' . $certInfo['id'] . '&reload=no">' . $strings['83'] . ' <i class="fa fa-download"></i></a></div>';
-																							}
-																							echo '<div class="w3-padding-small" style="display:inline-block;"><a class="w3-btn w3-blue" href="' . $_SERVER["PHP_SELF"] . '?sendByEmail=' . $certInfo['id'] . '&type=certificate">' . $strings['277'] . ' <i class="fa fa-share-square-o"></i></a></div>';
-																							if($certInfo['id'] != $_SESSION['certId']) {	
-																								// Not current session's certificate, ok to show revoke option.
-																								if (isEnterpriseAdmin($currentUser['id']) && isEnterpriseAdmin($user['id'])) {
-																									echo '<div class="w3-padding-small" style="display:inline-block;"><a class="w3-btn w3-red" href="javascript:void(0)" onclick="revokeCert(\'' . $certInfo['id'] . '\', \'' . $certInfo['fullName'] . ' (' . $certInfo['serial'] . ')\')">' . $strings['84'] . ' <i class="fa fa-times"></i></a></div>';
-																								} elseif (isEnterpriseAdmin($user['id']) === false) {
-																									echo '<div class="w3-padding-small" style="display:inline-block;"><a class="w3-btn w3-red" href="javascript:void(0)" onclick="revokeCert(\'' . $certInfo['id'] . '\', \'' . $certInfo['fullName'] . ' (' . $certInfo['serial'] . ')\')">' . $strings['84'] . ' <i class="fa fa-times"></i></a></div>';
-																								}
-																							}
-																						} else {
-																							// Certificate is revoked. Offer to reinstate or delete.
-																							echo '<span class="w3-text-red">' . $strings['427'] . '</span><br>';
-																							if (isEnterpriseAdmin($currentUser['id']) && isEnterpriseAdmin($user['id'])) {
-																								echo '<div class="w3-padding-small" style="display:inline-block;"><a class="w3-btn w3-blue" href="javascript:void(0)" onclick="unrevokeCert(\'' . $certInfo['id'] . '\', \'' . $certInfo['fullName'] . ' (' . $certInfo['serial'] . ')\')">' . $strings['85'] . ' <i class="fa fa-repeat"></i></a></div>';
-																								echo '<div class="w3-padding-small" style="display:inline-block;"><a class="w3-btn w3-red" href="javascript:void(0)" onclick="deleteCert(\'' . $certInfo['id'] . '\', \'' . javascriptEscape($certInfo['fullName']) . ' (' . $certInfo['serial'] . ')\')">' . $strings['86'] . ' <i class="fa fa-times"></i></a></div>';
-																							} elseif (isEnterpriseAdmin($user['id']) === false) {
-																								echo '<div class="w3-padding-small" style="display:inline-block;"><a class="w3-btn w3-blue" href="javascript:void(0)" onclick="unrevokeCert(\'' . $certInfo['id'] . '\', \'' . $certInfo['fullName'] . ' (' . $certInfo['serial'] . ')\')">' . $strings['85'] . ' <i class="fa fa-repeat"></i></a></div>';
-																								echo '<div class="w3-padding-small" style="display:inline-block;"><a class="w3-btn w3-red" href="javascript:void(0)" onclick="deleteCert(\'' . $certInfo['id'] . '\', \'' . javascriptEscape($certInfo['fullName']) . ' (' . $certInfo['serial'] . ')\')">' . $strings['86'] . ' <i class="fa fa-times"></i></a></div>';
-																							}
-																							
+													<div id="user' . $user['id'] . '" style="display:none" class="">';
+														if($user['id'] == $businessInfo['business']['owner']) {
+															echo '<div>
+																<i class="fa fa-superpowers"></i> ' . $strings['496'] . '
+															</div>';
+														}
+														echo '<h5 style="margin-bottom: 0px;" class="w3-light-grey w3-padding"><a href="javascript:showhide(\'userInfo' . $user['id'] . '\')">' . $strings['463'] . '</a></h5>
+														<div class="w3-padding" id="userInfo' . $user['id'] . '" style="display:none;">
+															' . $strings['429'] . ': ' . $user['name'] . '<br>
+															' . $strings['12'] . ': ' . $user['email'] . '<br>
+															' . $user['city'] . ', ' . $user['state'] . ', ' . $user['country'] . '
+														</div>
+															
+													
+														<h5 style="margin-bottom: 0px;" class="w3-light-grey w3-padding"><a href="javascript:showhide(\'userGroups' . $user['id'] . '\')">' . $strings['423'] . '</a></h5>
+														<div class="w3-padding" id="userGroups' . $user['id'] . '" style="display:none;">';
+														foreach($userGroups as $group) {
+															$groupInfo = getGroupInfo($group);
+															echo '<div title="' . $groupInfo['description'][$language] . '">' . $groupInfo['name'][$language] . '</div>';
+														}
+														echo '
+														</div>
+													
+														<h5 style="margin-bottom: 0px;" class="w3-light-grey w3-padding"><a href="javascript:showhide(\'userCerts' . $user['id'] . '\')">' . $strings['424'] . '</a></h5>
+														<div id="userCerts' . $user['id'] . '" class="w3-padding" style="display:none;">
+															<a href="usersAndGroups.php?issueCert=' . $user['id'] . '" class="w3-button w3-blue w3-margin">' . $strings['466'] . ' <i class="fa fa-plus-circle"></i></a>
+															<div class="w3-row">
+																';
+																$certCount = 0;
+																foreach($user['certs'] as $cert) {
+																	$certInfo = getBusinessUserCertInfo($cert);
+																	
+																	if($certInfo['deleted'] !== '1') {
+																		$certCount++;
+																		// Display only certificates that are NOT deleted...
+																		echo '
+																		<div class="w3-padding w3-half">
+																			<div class="w3-card-4">
+																				<div style="border-top: 0px; border-bottom: 0px; margin-top:0px;" class="w3-padding w3-'; if($certInfo['revoked'] == '1') { echo 'red'; } else { echo 'green'; } echo '"><i class="fa fa-id-card-o"></i> ' . utf8_decode($certInfo['fullName']) . ' (' . $certInfo['emailAddress'] . ')</div>
+																				<div class="w3-padding wrapLongText">
+																					' . $strings['79'] . ': ' . $certInfo['serial'] . '<br>
+																					' . $strings['234'] . ':' . $certInfo['validTo'] . ' <span class="w3-small">(' . $certInfo['daysToExpire'] . ' ' . $strings['258'] . ')</span><br>
+																					<span class="w3-small">' . $strings['82'] . ': ' . $certInfo['fingerprint'] . '</span><br>
+																					' . $strings['426'] . ': ';
+																					if($certInfo['revoked'] == '0') {
+																						// Certificate is active
+																						echo '<span class="w3-text-green">' . $strings['425'];
+																						if($_SESSION['certId'] == $certInfo['id']) { echo ' - <b>' . $strings['475'] . '</b>'; }
+																						echo '</span><br>
+																						
+																						<div style="height:16px;"></div>';
+																						if (isEnterpriseAdmin($currentUser['id']) && isEnterpriseAdmin($user['id'])) {
+																							echo '<div class="w3-padding-small" style="display:inline-block;"><a class="w3-btn w3-blue" href="' . $_SERVER["PHP_SELF"] . '?downloadCert=' . $certInfo['id'] . '&reload=no">' . $strings['83'] . ' <i class="fa fa-download"></i></a></div>';
+																						} elseif (isEnterpriseAdmin($user['id']) === false) {
+																							echo '<div class="w3-padding-small" style="display:inline-block;"><a class="w3-btn w3-blue" href="' . $_SERVER["PHP_SELF"] . '?downloadCert=' . $certInfo['id'] . '&reload=no">' . $strings['83'] . ' <i class="fa fa-download"></i></a></div>';
 																						}
-																						echo '
-																					</div>
+																						echo '<div class="w3-padding-small" style="display:inline-block;"><a class="w3-btn w3-blue" href="' . $_SERVER["PHP_SELF"] . '?sendByEmail=' . $certInfo['id'] . '&type=certificate">' . $strings['277'] . ' <i class="fa fa-share-square-o"></i></a></div>';
+																						if($certInfo['id'] != $_SESSION['certId']) {	
+																							// Not current session's certificate, ok to show revoke option.
+																							if (isEnterpriseAdmin($currentUser['id']) && isEnterpriseAdmin($user['id'])) {
+																								echo '<div class="w3-padding-small" style="display:inline-block;"><a class="w3-btn w3-red" href="javascript:void(0)" onclick="revokeCert(\'' . $certInfo['id'] . '\', \'' . $certInfo['fullName'] . ' (' . $certInfo['serial'] . ')\')">' . $strings['84'] . ' <i class="fa fa-times"></i></a></div>';
+																							} elseif (isEnterpriseAdmin($user['id']) === false) {
+																								echo '<div class="w3-padding-small" style="display:inline-block;"><a class="w3-btn w3-red" href="javascript:void(0)" onclick="revokeCert(\'' . $certInfo['id'] . '\', \'' . $certInfo['fullName'] . ' (' . $certInfo['serial'] . ')\')">' . $strings['84'] . ' <i class="fa fa-times"></i></a></div>';
+																							}
+																						}
+																					} else {
+																						// Certificate is revoked. Offer to reinstate or delete.
+																						echo '<span class="w3-text-red">' . $strings['427'] . '</span><br>';
+																						if (isEnterpriseAdmin($currentUser['id']) && isEnterpriseAdmin($user['id'])) {
+																							echo '<div class="w3-padding-small" style="display:inline-block;"><a class="w3-btn w3-blue" href="javascript:void(0)" onclick="unrevokeCert(\'' . $certInfo['id'] . '\', \'' . $certInfo['fullName'] . ' (' . $certInfo['serial'] . ')\')">' . $strings['85'] . ' <i class="fa fa-repeat"></i></a></div>';
+																							echo '<div class="w3-padding-small" style="display:inline-block;"><a class="w3-btn w3-red" href="javascript:void(0)" onclick="deleteCert(\'' . $certInfo['id'] . '\', \'' . javascriptEscape($certInfo['fullName']) . ' (' . $certInfo['serial'] . ')\')">' . $strings['86'] . ' <i class="fa fa-times"></i></a></div>';
+																						} elseif (isEnterpriseAdmin($user['id']) === false) {
+																							echo '<div class="w3-padding-small" style="display:inline-block;"><a class="w3-btn w3-blue" href="javascript:void(0)" onclick="unrevokeCert(\'' . $certInfo['id'] . '\', \'' . $certInfo['fullName'] . ' (' . $certInfo['serial'] . ')\')">' . $strings['85'] . ' <i class="fa fa-repeat"></i></a></div>';
+																							echo '<div class="w3-padding-small" style="display:inline-block;"><a class="w3-btn w3-red" href="javascript:void(0)" onclick="deleteCert(\'' . $certInfo['id'] . '\', \'' . javascriptEscape($certInfo['fullName']) . ' (' . $certInfo['serial'] . ')\')">' . $strings['86'] . ' <i class="fa fa-times"></i></a></div>';
+																						}
+																						
+																					}
+																					echo '
 																				</div>
-																			</div>';
-																		}
-																	}
-																	if ($certCount === 0) {
-																		// No certificate to display
-																		echo '<div class="w3-padding">
-																			' . $strings['465'] . '
+																			</div>
 																		</div>';
 																	}
-																	echo '	
-																</div>
+																}
+																if ($certCount === 0) {
+																	// No certificate to display
+																	echo '<div class="w3-padding">
+																		' . $strings['465'] . '
+																	</div>';
+																}
+																echo '	
 															</div>
+														</div>
 														<!-- USER HISTORY -->
 														<h5 style="margin-bottom: 0px;" class="w3-light-grey w3-padding"><a href="javascript:showhide(\'userHistory' . $user['id'] . '\')">' . $strings['460'] . '</a></h5>
 														<div id="userHistory' . $user['id'] . '" style="display:none;">
@@ -564,9 +576,9 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 					<!-- Groups section -->
 					<div class="w3-card-4 w3-margin">
 						<div class="w3-blue w3-center" style="padding: 7px">
-							<h3 style="margin: 0px;"><a href="javascript:showhidePlus('groups', 'groupsPlus')"><i class="fa <?php if(isset($showAddGroupForm) || isset($editGroup)) { echo 'fa-minus-square'; } else { echo 'fa-plus-square'; } ?>" id="groupsPlus"></i></a> <a href="javascript:showhidePlus('groups', 'groupsPlus')"><?php echo $strings['420']; ?></a></h3>
+							<h3 style="margin: 0px;"><a href="javascript:showhidePlus('groups', 'groupsPlus')"><i class="fa <?php if(isset($showAddGroupForm) || isset($showEditGroupForm)) { echo 'fa-minus-square'; } else { echo 'fa-plus-square'; } ?>" id="groupsPlus"></i></a> <a href="javascript:showhidePlus('groups', 'groupsPlus')"><?php echo $strings['420']; ?></a></h3>
 						</div>
-						<div id="groups" style="display:<?php if(isset($editGroup) || $showAddGroupForm == true) { echo 'block'; } else { echo 'none'; } ?>;">
+						<div id="groups" style="display:<?php if(isset($showEditGroupForm) || $showAddGroupForm == true) { echo 'block'; } else { echo 'none'; } ?>;">
 							<div class="">
 								<?php 
 									if($showAddGroupForm) {
@@ -655,8 +667,9 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 														echo '</div>
 													</div>
 													<div id="group' . $group['id'] . '" style=display:none;>
-														<div class="w3-margin-bottom">
-															' . $group['description'][$language] . '
+														<div class="w3-margin-bottom">';
+															if($group['id'] == $businessInfo['business']['owningGroup']) { echo ' <i class="fa fa-superpowers"></i> '; }
+															echo $group['description'][$language] . '
 														</div>';
 														echo '<b>' . $strings['478'] . ':</b>
 														<div class="w3-padding">';
@@ -665,10 +678,13 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 															$memberInfo = getBusinessUserInfoFromId($member);
 															echo $memberInfo['name'] . ' (' . $memberInfo['email'] . ')<br>';
 														}
-													echo '
+														echo '
 														</div>
+														<div style="height: 20px;">&nbsp;</div>
+														<div class="">' . $strings['497'] . ': ' . $group['id'] . '</div>
 													</div>
-												</div>';
+												</div>
+											';
 											}
 										}
 									}

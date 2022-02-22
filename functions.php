@@ -1402,6 +1402,7 @@ function generateRandomIdentity() {
 //////////////////////////// BUSINESS FUNCTIONS ////////////////////////////
 
 function getBusinessInfo($userId) {
+	// $userId is the global user ID (the one from $_SESSION['userId'].
 	global $conn;
 	
 	$sql = "SELECT cipherSuite, iv, entry, tag FROM users WHERE id='$userId' AND businessAccount='1'";
@@ -1412,7 +1413,7 @@ function getBusinessInfo($userId) {
 	if(mysqli_num_rows($db_rawBusinessInfo) < 1 || is_null($db_businessInfo['entry']) || $db_businessInfo['entry'] == '') {
 		$businessInfo = array();
 		$businessInfo['status'] = 'uninitialized';
-	} else {		
+	} else {
 		// There is info in here... decrypt it and turn it into an array!
 		$jsonBusinessInfo = decryptDataNextGen($db_businessInfo['iv'], $_SESSION['encryptionKey'], $db_businessInfo['entry'], $db_businessInfo['cipherSuite'], $db_businessInfo['tag']);
 		$businessInfo = json_decode($jsonBusinessInfo, true);
@@ -1613,24 +1614,27 @@ function businessGroupsCheckboxes($userGroups=array(), $forUser='') {
 	$language = $_SESSION['language'];
 	
 	foreach($groups as $group) {
-		if($group['id'] == $businessInfo['business']['owningGroup']) {
-			if($effectivePermission['business'] == 'rw') {
-				// Only an enterprise admin can manage enterprise admins!
-				if (in_array($group['id'], $userGroups)){ $checked = ' checked="checked"';}
-				if(isBusinessOwner($forUser)) {
-					// One cannot remove the business Owner from the enterprise admin group!!!
-					$disabled = ' disabled="disabled"';
-					$htmlString .='<input type="hidden" name="groups[]" value="' . $group['id'] . '">';
+		if($group['deleted'] != '1') {
+			//Lists only groups that are not deleted...
+			if($group['id'] == $businessInfo['business']['owningGroup']) {
+				if($effectivePermission['business'] == 'rw') {
+					// Only an enterprise admin can manage enterprise admins!
+					if (in_array($group['id'], $userGroups)){ $checked = ' checked="checked"';}
+					if(isBusinessOwner($forUser)) {
+						// One cannot remove the business Owner from the enterprise admin group!!!
+						$disabled = ' disabled="disabled"';
+						$htmlString .='<input type="hidden" name="groups[]" value="' . $group['id'] . '">';
+					}
+					$htmlString .= '<div class="w3-padding w3-half"> <input class="w3-check" type="checkbox" name="groups[]" value="' . $group['id'] . '"' . $checked . $disabled . '> ' . $group['name'][$language] . '</div>';
+					unset($checked);
+					unset($disabled);
 				}
-				$htmlString .= '<div class="w3-padding w3-half"> <input class="w3-check" type="checkbox" name="groups[]" value="' . $group['id'] . '"' . $checked . $disabled . '> ' . $group['name'][$language] . '</div>';
+			} else {
+				if (in_array($group['id'], $userGroups)){ $checked = ' checked';}
+					
+				$htmlString .= '<div class="w3-padding w3-half"> <input class="w3-check" type="checkbox" name="groups[]" value="' . $group['id'] . '"' . $checked . '> ' . $group['name'][$language] . '</div>';
 				unset($checked);
-				unset($disabled);
 			}
-		} else {
-			if (in_array($group['id'], $userGroups)){ $checked = ' checked';}
-				
-			$htmlString .= '<div class="w3-padding w3-half"> <input class="w3-check" type="checkbox" name="groups[]" value="' . $group['id'] . '"' . $checked . '> ' . $group['name'][$language] . '</div>';
-			unset($checked);
 		}
 	}
 	$htmlString .= '</div>';
@@ -1722,40 +1726,43 @@ function updateUserGroups($userId, $groups) {
 	$language = $_SESSION['language'];
 	
 	foreach($businessGroups as $group) {
-		if(in_array($group['id'], $groups)) {
-			// User should be a member of this group
-			// is he yet?
-			if(!in_array($userId, $group['members'])) {
-				// User is not already a member of this group... add it!
-				$group['members'][] = $userId;
-				logAction('39', 'User ID: ' . $userId . ', Name: ' . $userInfo['name'] . ', Group ID:' . $group['id'] . ', Group name:' . $group['name'][$language]);
-				$updated = true;
+		if($group['deleted'] != '1') {
+			// Do not touch groups that were deleted...
+			if(in_array($group['id'], $groups)) {
+				// User should be a member of this group
+				// is he yet?
+				if(!in_array($userId, $group['members'])) {
+					// User is not already a member of this group... add it!
+					$group['members'][] = $userId;
+					logAction('39', 'User ID: ' . $userId . ', Name: ' . $userInfo['name'] . ', Group ID:' . $group['id'] . ', Group name:' . $group['name'][$language]);
+					$updated = true;
+				}
+			} else {
+				// User should not be a member of this group
+				if(in_array($userId, $group['members'])) {
+					// User is a member of this group, but has been removed... remove it!
+					$membershipKey = array_search($userId, $group['members']);
+					unset($group['members'][$membershipKey]);
+					// Reindex array to remove empty elements
+					$group['members'] = array_values($group['members']);
+					logAction('40', 'User ID: ' . $userId . ', Name: ' . $userInfo['name'] . ', Group ID:' . $group['id'] . ', Group name:' . $group['name'][$language]);
+					$updated = true;
+				}
 			}
-		} else {
-			// User should not be a member of this group
-			if(in_array($userId, $group['members'])) {
-				// User is a member of this group, but has been removed... remove it!
-				$membershipKey = array_search($userId, $group['members']);
-				unset($group['members'][$membershipKey]);
-				// Reindex array to remove empty elements
-				$group['members'] = array_values($group['members']);
-				logAction('40', 'User ID: ' . $userId . ', Name: ' . $userInfo['name'] . ', Group ID:' . $group['id'] . ', Group name:' . $group['name'][$language]);
-				$updated = true;
+			if($updated) {
+				// Update group in database...
+				$jsonGroup = json_encode($group);
+				
+				$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonGroup, $config['currentCipherSuite']);
+				$encryptedEntryIv = $encryptedEntry['iv'];
+				$encryptedEntryData = $encryptedEntry['data'];
+				$encryptedEntryTag = $encryptedEntry['tag'];
+				
+				$sql = "UPDATE businessGroups SET cipherSuite='$config[currentCipherSuite]', iv='$encryptedEntryIv', entry='$encryptedEntryData', tag='$encryptedEntryTag' WHERE id='$group[id]'";
+				$conn -> query($sql);
+				
+				unset($updated);
 			}
-		}
-		if($updated) {
-			// Update group in database...
-			$jsonGroup = json_encode($group);
-			
-			$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonGroup, $config['currentCipherSuite']);
-			$encryptedEntryIv = $encryptedEntry['iv'];
-			$encryptedEntryData = $encryptedEntry['data'];
-			$encryptedEntryTag = $encryptedEntry['tag'];
-			
-			$sql = "UPDATE businessGroups SET cipherSuite='$config[currentCipherSuite]', iv='$encryptedEntryIv', entry='$encryptedEntryData', tag='$encryptedEntryTag' WHERE id='$group[id]'";
-			$conn -> query($sql);
-			
-			unset($updated);
 		}
 	}
 }
@@ -1811,58 +1818,150 @@ function getBusinessManagementPermissions() {
 	$businessUser = getBusinessUserInfo($_SESSION['certId']);
 	$businessUserGroups = getBusinessUserGroups($businessUser['id']);
 	
-	if($businessInfo['business']['owner'] == $businessUser['id'])   {
+	if($businessUser !== false) {
+		if($businessInfo['business']['owner'] == $businessUser['id'])   {
+			
+			// This is the business owner... welcome in my lord...
+			// Grab permission on the object
+			$effectivePermission['business'] = $businessInfo['business']['acl']['u'];
+		} elseif(in_array($businessInfo['business']['owningGroup'], $businessUserGroups)) {
+			
+			// User is in the owning group
+			$effectivePermission['business'] = $businessInfo['business']['acl']['g'];
+		} else {
+			
+			// Get permission for "other"
+			$effectivePermission['business'] = $businessInfo['business']['acl']['o'];
+		}
 		
-		// This is the business owner... welcome in my lord...
-		// Grab permission on the object
-		$effectivePermission['business'] = $businessInfo['business']['acl']['u'];
-	} elseif(in_array($businessInfo['business']['owningGroup'], $businessUserGroups)) {
+		if($businessInfo['billing']['owner'] == $businessUser['id'] || in_array($businessInfo['business']['owningGroup'], $businessUserGroups))   {
+			// This is the billing owner or enterprise admin... welcome in my lord...
+			// Grab permission on the object
+			$effectivePermission['billing'] = $businessInfo['billing']['acl']['u'];
+		} elseif(in_array($businessInfo['billing']['owningGroup'], $businessUserGroups)) {
+			// User is in the owning group
+			$effectivePermission['billing'] = $businessInfo['billing']['acl']['g'];
+		} else {
+			// Get permission for "other"
+			$effectivePermission['billing'] = $businessInfo['billing']['acl']['o'];
+		}
 		
-		// User is in the owning group
-		$effectivePermission['business'] = $businessInfo['business']['acl']['g'];
-	} else {
+		if($businessInfo['users']['owner'] == $businessUser['id'] || in_array($businessInfo['business']['owningGroup'], $businessUserGroups))   {
+			// This is the users owner or enterprise admin... welcome in my lord...
+			// Grab permission on the object
+			$effectivePermission['users'] = $businessInfo['users']['acl']['u'];
+		} elseif(in_array($businessInfo['users']['owningGroup'], $businessUserGroups)) {
+			// User is in the owning group
+			$effectivePermission['users'] = $businessInfo['users']['acl']['g'];
+		} else {
+			// Get permission for "other"
+			$effectivePermission['users'] = $businessInfo['users']['acl']['o'];
+		}
 		
-		// Get permission for "other"
-		$effectivePermission['business'] = $businessInfo['business']['acl']['o'];
-	}
-	
-	if($businessInfo['billing']['owner'] == $businessUser['id'] || in_array($businessInfo['business']['owningGroup'], $businessUserGroups))   {
-		// This is the billing owner or enterprise admin... welcome in my lord...
-		// Grab permission on the object
-		$effectivePermission['billing'] = $businessInfo['billing']['acl']['u'];
-	} elseif(in_array($businessInfo['billing']['owningGroup'], $businessUserGroups)) {
-		// User is in the owning group
-		$effectivePermission['billing'] = $businessInfo['billing']['acl']['g'];
+		if($businessInfo['logging']['owner'] == $businessUser['id'] || in_array($businessInfo['business']['owningGroup'], $businessUserGroups))   {
+			// This is the logging owner or enterprise admin... welcome in my lord...
+			// Grab permission on the object
+			$effectivePermission['logging'] = $businessInfo['logging']['acl']['u'];
+		} elseif(in_array($businessInfo['logging']['owningGroup'], $businessUserGroups)) {
+			// User is in the owning group
+			$effectivePermission['logging'] = $businessInfo['logging']['acl']['g'];
+		} else {
+			// Get permission for "other"
+			$effectivePermission['logging'] = $businessInfo['logging']['acl']['o'];
+		}
 	} else {
-		// Get permission for "other"
-		$effectivePermission['billing'] = $businessInfo['billing']['acl']['o'];
-	}
-	
-	if($businessInfo['users']['owner'] == $businessUser['id'] || in_array($businessInfo['business']['owningGroup'], $businessUserGroups))   {
-		// This is the users owner or enterprise admin... welcome in my lord...
-		// Grab permission on the object
-		$effectivePermission['users'] = $businessInfo['users']['acl']['u'];
-	} elseif(in_array($businessInfo['users']['owningGroup'], $businessUserGroups)) {
-		// User is in the owning group
-		$effectivePermission['users'] = $businessInfo['users']['acl']['g'];
-	} else {
-		// Get permission for "other"
-		$effectivePermission['users'] = $businessInfo['users']['acl']['o'];
-	}
-	
-	if($businessInfo['logging']['owner'] == $businessUser['id'] || in_array($businessInfo['business']['owningGroup'], $businessUserGroups))   {
-		// This is the logging owner or enterprise admin... welcome in my lord...
-		// Grab permission on the object
-		$effectivePermission['logging'] = $businessInfo['logging']['acl']['u'];
-	} elseif(in_array($businessInfo['logging']['owningGroup'], $businessUserGroups)) {
-		// User is in the owning group
-		$effectivePermission['logging'] = $businessInfo['logging']['acl']['g'];
-	} else {
-		// Get permission for "other"
-		$effectivePermission['logging'] = $businessInfo['logging']['acl']['o'];
+		$effectivePermission = false;
 	}
 	
 	return $effectivePermission;
+}
+
+function getRootFolder() {
+	// This function returns the metadata of the root folder
+	global $conn;
+	
+	$business = $_SESSION['userId'];
+	$sql = "SELECT id, cipherSuite, iv, entry, tag FROM businessFolders WHERE userId = '$business'";
+	$db_rawFolders = $conn -> query($sql);
+	while ($db_folder = $db_rawFolders -> fetch_assoc()) {
+		$jsonFolder = decryptDataNextGen($db_folder['iv'], $_SESSION['encryptionKey'], $db_folder['entry'], $db_folder['cipherSuite'], $db_folder['tag']);
+		$folder = json_decode($jsonFolder, true);
+		if($folder['name'] == '/' && $folder['parent'] == '') {
+			$folder['id'] = $db_folder['id'];
+		}
+	}
+	return $folder;
+}
+
+function getFolderInfo($folderId) {
+	global $conn;
+	
+	$business = $_SESSION['userId'];
+	$folderId = mysqli_real_escape_string($conn, $folderId);
+	
+	$sql = "SELECT id, cipherSuite, iv, entry, tag FROM businessFolders WHERE userId = '$business' AND id='$folderId'";
+	$db_rawFolders = $conn -> query($sql);
+	if(mysqli_num_rows($db_rawFolders) == '1') {
+		$db_folder = $db_rawFolders -> fetch_assoc();
+		$jsonFolder = decryptDataNextGen($db_folder['iv'], $_SESSION['encryptionKey'], $db_folder['entry'], $db_folder['cipherSuite'], $db_folder['tag']);
+		$folder = json_decode($jsonFolder, true);
+		$folder['id'] = $folderId;
+		return $folder;
+	} else {
+		return false;
+	}
+}
+
+function getFolderEffectivePermission($folderId) {
+	$businessUser = getBusinessUserInfo($_SESSION['certId']);
+	$businessUserGroups = getBusinessUserGroups($businessUser['id']);
+	
+	$folder = getFolderInfo($folderId);
+	
+	if($folder !== false) {
+		if($folder['owner'] == $businessUser['id']) {
+			$permission = $folder['acl']['u'];
+		} elseif (in_array($folder['owningGroup'], $businessUserGroups)) {
+			$permission = $folder['acl']['g'];
+		} else {
+			$permission = $folder['acl']['o'];
+		}
+		return $permission;
+	} else {
+		return false;
+	}
+}
+
+function buildHierarchy($folderId) {
+	global $conn;
+	
+	$business = $_SESSION['userId'];
+	$folderId = mysqli_real_escape_string($conn, $folderId);
+	$sql = "SELECT id, cipherSuite, iv, entry, tag FROM businessFolders WHERE userId = '$business' AND id='$folderId'";
+	$db_rawFolders = $conn -> query($sql);
+	if(mysqli_num_rows($db_rawFolders) == '1') {
+		$db_folder = $db_rawFolders -> fetch_assoc();
+		$jsonFolder = decryptDataNextGen($db_folder['iv'], $_SESSION['encryptionKey'], $db_folder['entry'], $db_folder['cipherSuite'], $db_folder['tag']);
+		$folder = json_decode($jsonFolder, true);
+		$folder['id'] = $folderId;
+		$depth = 0;
+		while($folder['parent'] != '') {
+			$depth++;
+			// Loop until there is no parent left...
+			$sql = "SELECT id, cipherSuite, iv, entry, tag FROM businessFolders WHERE userId = '$business' AND id='$folder[parent]'";
+			$db_rawFolders = $conn -> query($sql);
+			$db_folder = $db_rawFolders -> fetch_assoc();
+			$jsonFolder = decryptDataNextGen($db_folder['iv'], $_SESSION['encryptionKey'], $db_folder['entry'], $db_folder['cipherSuite'], $db_folder['tag']);
+			$folder = json_decode($jsonFolder, true);
+			$folder['id'] = $folderId;
+			$folder['subfolder'] = $folder;
+		}
+		$folder['depth'] = $depth;
+		return $folder;
+		
+	} else {
+		return false;
+	}
 }
 
 function logAction($messageId, $customInformation=''){

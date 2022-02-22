@@ -11,6 +11,7 @@
 		header("HTTP/1.1 301 Moved Permanently");
 		header("Location: index.php");
 	}
+	$businessPermissions = getBusinessManagementPermissions();
 ?>
 
 <?php if($config['devMode']) { echo '<div class="w3-block"><p class="w3-center w3-red">MySecureVault is in DEV MODE! Do not type any production information!</p></div>'; } ?>
@@ -24,16 +25,30 @@
 		<div class="w3-dropdown-content w3-bar-block w3-card-4" style="right: 0;" id="menuDropdown">
 			<?php // Profile button
 				if(!is_null($_SESSION['fullName'])) {
-					echo '
-						<a href="profile.php" class="w3-bar-item w3-button w3-large w3-border-top w3-hover-blue">
-							<i class="fa fa-user">
-								<span style="font-family: arial;"> ' . $_SESSION['fullName'] . '</span>
-							</i>
-						</a>
-					';
-					echo '
-						<a class="w3-bar-item w3-button w3-hover-blue" style="margin-left: 30px;" href="profile.php?control=logout">' . $strings['38'] . '</a>
-					';
+					if($businessPermissions === false || !isset($businessPermissions)) {
+						echo '
+							<a href="profile.php" class="w3-bar-item w3-button w3-large w3-border-top w3-hover-blue">
+								<i class="fa fa-user">
+									<span style="font-family: arial;"> ' . $_SESSION['fullName'] . '</span>
+								</i>
+							</a>
+						';
+						echo '
+							<a class="w3-bar-item w3-button w3-hover-blue" style="margin-left: 30px;" href="profile.php?control=logout">' . $strings['38'] . '</a>
+						';
+					} else {
+						$businessInfo = getBusinessInfo($_SESSION['userId']);
+						echo '
+							<a href="businessHome.php" class="w3-bar-item w3-button w3-large w3-border-top w3-hover-blue">
+								<i class="fa fa-home">
+									<span style="font-family: arial;"> ' . $strings['168'] . ' - ' . $businessInfo['business']['name'] . '</span>
+								</i>
+							</a>
+						';
+						echo '
+							<a class="w3-bar-item w3-button w3-hover-blue" style="margin-left: 30px;" href="businessHome.php?control=logout">' . $strings['38'] . '</a>
+						';
+					}
 				}
 			?>
 			

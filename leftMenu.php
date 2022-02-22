@@ -11,16 +11,28 @@
 	<div style="margin: 0px!important;" class="w3-center w3-blue w3-padding"><i class="w3-xxlarge fa fa-bars"></i></div>
 	<?php 
 		if(!is_null($_SESSION['fullName'])) {
-			if(strlen($_SESSION['fullName']) > 25) { $accountDisplayName = substr($_SESSION['fullName'], 0, 22) . '...'; } else { $accountDisplayName = $_SESSION['fullName']; }
+			
 			echo '
-			<div class="w3-dropdown-hover">
-				<a href="profile.php" class="w3-hover-blue w3-button w3-large w3-white w3-border-top" style="padding:15px!important;">
-					<i class="fa fa-user">
-						<span style="font-family: arial;"> ' . $accountDisplayName . '</span>
-					</i>
-				</a>
-				<div class="w3-dropdown-content w3-bar-block w3-card-4" style="left: 30px;">
-					<a class="w3-hover-blue w3-bar-item w3-button w3-large" href="profile.php?control=logout">
+			<div class="w3-dropdown-hover">';
+				if($businessPermissions === false || !isset($businessPermissions)) {
+					if(strlen($_SESSION['fullName']) > 25) { $accountDisplayName = substr($_SESSION['fullName'], 0, 22) . '...'; } else { $accountDisplayName = $_SESSION['fullName']; }
+					echo '<a href="profile.php" class="w3-hover-blue w3-button w3-large w3-white w3-border-top" style="padding:15px!important;">
+						<i class="fa fa-user">
+							<span style="font-family: arial;"> ' . $accountDisplayName . '</span>
+						</i>
+					</a>';
+				} else {
+					$businessInfo = getBusinessInfo($_SESSION['userId']);
+					if(strlen($businessInfo['business']['name']) > 20) { $businessHomeDisplayName = $strings['168'] . ' - ' . substr($businessInfo['business']['name'], 0, 17) . '...'; } else { $businessHomeDisplayName = $strings['168'] . ' - ' . $businessInfo['business']['name']; }
+					echo '<a href="businessHome.php" class="w3-hover-blue w3-button w3-large w3-white w3-border-top" style="padding:15px!important;">
+						<i class="fa fa-home">
+							<span style="font-family: arial;"> ' . $businessHomeDisplayName . '</span>
+						</i>
+					</a>';
+				}
+					
+				echo '<div class="w3-dropdown-content w3-bar-block w3-card-4" style="left: 30px;">
+					<a class="w3-hover-blue w3-bar-item w3-button w3-large" href="businessHome.php?control=logout">
 						<i class="fa fa-times-circle"></i> ' . $strings['38'] . '
 					</a>
 				</div>

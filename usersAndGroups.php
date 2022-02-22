@@ -175,9 +175,11 @@ if (initiateSession()) {
 						} else {
 							// Trying to edit one of the system groups. This is not permitted!
 							logAction('60', 'Group ID: ' . $editGroup['id'] . ', Group name: ' . $editGroup['name']['en']);
+							$message = $strings['490'];
 						}
 					} else {
 						logAction('59', 'Group ID provided: ' . $_GET['editGroup']);
+						$message = $strings['490'];
 					}
 				}
 				
@@ -237,6 +239,35 @@ if (initiateSession()) {
 					} else {
 						logAction('42', 'User ID provided: ' . $_GET['deleteUser']);
 						$message = $strings['462'];
+					}
+				}
+				
+				if(ctype_digit($_GET['deleteGroup'])) {
+					$deleteGroup = getGroupInfo($_GET['deleteGroup']);
+					$businessInfo = getBusinessInfo($_SESSION['userId']);
+					if($deleteGroup !== false && $deleteGroup['deleted'] != '1') {
+						if($deleteGroup['id'] != $businessInfo['business']['owningGroup'] && $deleteGroup['id'] != $businessInfo['billing']['owningGroup'] && $deleteGroup['id'] != $businessInfo['users']['owningGroup'] && $deleteGroup['id'] != $businessInfo['logging']['owningGroup']) {
+							// OK to delete this group
+							logAction('68', 'Group: (ID: ' . $deleteGroup['id'] . ') ' . $deleteGroup['name']['en']);
+							
+							$deleteGroup['deleted'] = '1';
+							
+							$jsonEntry = json_encode($deleteGroup);
+							$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
+							$encryptedEntryIv = $encryptedEntry['iv'];
+							$encryptedEntryData = $encryptedEntry['data'];
+							$encryptedEntryTag = $encryptedEntry['tag'];
+							
+							$sql = "UPDATE businessGroups SET cipherSuite='$config[currentCipherSuite]', iv='$encryptedEntryIv', entry='$encryptedEntryData', tag='$encryptedEntryTag' WHERE id='$deleteGroup[id]'";
+							$conn -> query($sql);
+						} else {
+							// Trying to delete one of the system groups. This is not permitted!
+							logAction('67', 'Group ID: ' . $deleteGroup['id'] . ', Group name: ' . $deleteGroup['name']['en']);
+							$message = $strings['491'];
+						}
+					} else {
+						logAction('69', 'Group ID provided: ' . $_GET['deleteGroup']);
+						$message = $strings['491'];
 					}
 				}
 				
@@ -580,20 +611,7 @@ if (initiateSession()) {
 								logAction('16', 'Query string:' . $sql);
 								logAction('11', 'Business user ID: ' . $businessUserId);
 								
-								foreach($userGroups as $group) {
-									$groupInfo = getGroupInfo($group);
-									$groupInfo['members'][] = $businessUserId;
-									
-									$jsonEntry = json_encode($groupInfo);
-									$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
-									$encryptedEntryIv = $encryptedEntry['iv'];
-									$encryptedEntryData = $encryptedEntry['data'];
-									$encryptedEntryTag = $encryptedEntry['tag'];
-									
-									$sql = "UPDATE businessGroups SET cipherSuite='$config[currentCipherSuite]', iv='$encryptedEntryIv', entry='$encryptedEntryData', tag='$encryptedEntryTag' WHERE id='$group'";
-									$conn -> query($sql);
-									logAction('16', 'Query string:' . $sql);
-								}						
+								updateUserGroups($businessUserId, $userGroups);
 								
 								$message = $strings['451'];
 								$loadContent = true;
@@ -732,7 +750,7 @@ if (initiateSession()) {
 					}
 					
 					if($backToEditUserForm) {
-						logAction('28', 'User edited: (' . $editUser['id'] . ') ' . $editUser['name']);
+						logAction('28', 'User modified: (' . $editUser['id'] . ') ' . $editUser['name']);
 						$showEditUserForm = true;
 					} else {
 						// All good! update user info
@@ -748,6 +766,7 @@ if (initiateSession()) {
 						
 						updateUserGroups($editUser['id'], $editUserGroups);
 						
+						$message = $strings['495'];
 					}
 				}
 				
@@ -889,6 +908,7 @@ if (initiateSession()) {
 					
 					if($backToAddGroupForm) {
 						$showAddGroupForm = true;
+						logAction('71');
 					} else {
 						// All validations are good, proceed with group creation...
 						
@@ -906,6 +926,11 @@ if (initiateSession()) {
 						
 						$sql = "INSERT INTO businessGroups (userId, cipherSuite, iv, entry, tag) VALUES ('$_SESSION[userId]', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]')";
 						$conn -> query($sql);
+						
+						$group['id'] = mysqli_insert_id($conn);
+						
+						logAction('70', 'Group created: (' . $group['id'] . ') ' . $group['name']['en']);
+						$message = $strings['493'];
 					}
 					
 				}
@@ -917,15 +942,71 @@ if (initiateSession()) {
 						if($editGroup['id'] != $businessInfo['business']['owningGroup'] && $editGroup['id'] != $businessInfo['billing']['owningGroup'] && $editGroup['id'] != $businessInfo['users']['owningGroup'] && $editGroup['id'] != $businessInfo['logging']['owningGroup']) {
 							// All validations passed... process information!
 							$editGroupId = $editGroup['id'];
-							/*
-							$editGroupNameEn = 
-							$editGroupNameFr
-							*/
-						} else {
+							$editGroupNameEn = $_POST['editGroupNameEn'];
+							$editGroupNameFr = $_POST['editGroupNameFr'];
+							$editGroupDescriptionEn = $_POST['editGroupDescriptionEn'];
+							$editGroupDescriptionFr = $_POST['editGroupDescriptionFr'];
 							
+							if(strlen($editGroupNameEn) < 1) {
+								$editGroupNameEnError = $strings['485'];
+								$backToEditGroupForm = true;
+							} elseif(strlen($editGroupNameEn) > 256) {
+								$editGroupNameEnError = $strings['486'];
+								$backToEditGroupForm = true;
+							}
+							
+							if(strlen($editGroupNameFr) < 1) {
+								$editGroupNameFr = $editGroupNameEn;
+							} elseif(strlen($editGroupNameFr) > 256) {
+								$editGroupNameFrError = $strings['486'];
+								$backToEditGroupForm = true;
+							}
+							
+							if(strlen($editGroupDescriptionEn) < 1) {
+								$editGroupDescriptionEnError = $strings['488'];
+								$backToEditGroupForm = true;
+							} elseif(strlen($editGroupDescriptionEn) > 1024) {
+								$editGroupDescriptionEnError = $strings['487'];
+								$backToEditGroupForm = true;
+							}
+							
+							if(strlen($editGroupDescriptionFr) < 1) {
+								$editGroupDescriptionFr = $editGroupDescriptionEn;
+							} elseif(strlen($editGroupDescriptionFr) > 1024) {
+								$editGroupDescriptionFrError = $strings['487'];
+								$backToEditGroupForm = true;
+							}
+							
+							if($backToEditGroupForm) {
+								$showEditGroupForm = true;
+								logAction('63', 'Group ID: ' . $editGroup['id'] . ', Group name: ' . $editGroup['name']['en']);
+							} else {
+								logAction('64', 'Group modified: (' . $editGroup['id'] . ') ' . $editGroup['name']['en']);
+								
+								$editGroup['name']['en'] = $editGroupNameEn;
+								$editGroup['name']['fr'] = $editGroupNameFr;
+								$editGroup['description']['en'] = $editGroupDescriptionEn;
+								$editGroup['description']['fr'] = $editGroupDescriptionFr;
+								
+								$jsonEntry = json_encode($editGroup);
+								$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
+								$encryptedEntryIv = $encryptedEntry['iv'];
+								$encryptedEntryData = $encryptedEntry['data'];
+								$encryptedEntryTag = $encryptedEntry['tag'];
+								
+								$sql = "UPDATE businessGroups SET cipherSuite='$config[currentCipherSuite]', iv='$encryptedEntryIv', entry='$encryptedEntryData', tag='$encryptedEntryTag' WHERE id='$editGroup[id]'";
+								$conn -> query($sql);
+								
+								$message = $strings['494'];
+							}
+							
+						} else {
+							logAction('65', 'Group ID: ' . $editGroup['id'] . ', Group name: ' . $editGroup['name']['en']);
+							$message = $strings['490'];
 						}
 					} else {
-						
+						logAction('66', 'Group ID provided: ' . $_GET['editGroup']);
+						$message = $strings['490'];
 					}
 				}
 				
