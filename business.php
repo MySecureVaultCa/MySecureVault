@@ -235,6 +235,8 @@ if (initiateSession()) {
 					// All validations successful!
 					
 					// Initialize business user
+					// Generate a personal encryption key
+					// $businessUser['personalEncryptionKey'] = base64_encode(generateEncryptionKeyNextGen());
 					$businessUser['name'] = $_SESSION['fullName'];
 					$businessUser['email'] = $_SESSION['emailAddress'];
 					$businessUser['city'] = $_SESSION['certCity'];
@@ -346,13 +348,12 @@ if (initiateSession()) {
 							b = Browse permission
 					*/
 					$businessFolder['name'] = '/';
-					$businessFolder['parentFolder'] = '';
 					$businessFolder['owner'] = $businessUserId;
 					$businessFolder['owningGroup'] = $enterpriseAdminGroupId;
 					$businessFolder['sharedWith'] = array();
-					$businessFolder['acl']['u'] = 'rws';
-					$businessFolder['acl']['g'] = 'rws';
-					$businessFolder['acl']['o'] = 'r';
+					$businessFolder['acl']['u'] = 'brws';
+					$businessFolder['acl']['g'] = 'brws';
+					$businessFolder['acl']['o'] = 'br';
 					
 					$jsonEntry = json_encode($businessFolder);
 					
@@ -361,7 +362,7 @@ if (initiateSession()) {
 					$encryptedEntryData = $encryptedEntry['data'];
 					$encryptedEntryTag = $encryptedEntry['tag'];
 					
-					$sql = "INSERT INTO businessFolders (userId, cipherSuite, iv, entry, tag) VALUES ('$_SESSION[userId]', '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]')";
+					$sql = "INSERT INTO businessFolders (userId, parentFolder, cipherSuite, iv, entry, tag) VALUES ('$_SESSION[userId]', NULL, '$config[currentCipherSuite]', '$encryptedEntry[iv]', '$encryptedEntry[data]', '$encryptedEntry[tag]')";
 					$conn -> query($sql);
 					
 					// Finish with business information

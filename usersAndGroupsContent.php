@@ -423,6 +423,9 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 										$businessUsers = getAllBusinessUsers();
 										$currentUser = getBusinessUserInfo($_SESSION['certId']);
 										$currentUserGroups = getBusinessUserGroups($currentUser['id']);
+										usort($businessUsers, function ($a, $b) {
+											return strtolower($a['name']) <=> strtolower($b['name']);
+										});
 										foreach($businessUsers as $user) {
 											if($user['deleted'] != '1') {
 												$userGroups = getBusinessUserGroups($user['id']);
@@ -460,9 +463,15 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 													
 														<h5 style="margin-bottom: 0px;" class="w3-light-grey w3-padding"><a href="javascript:showhide(\'userGroups' . $user['id'] . '\')">' . $strings['423'] . '</a></h5>
 														<div class="w3-padding" id="userGroups' . $user['id'] . '" style="display:none;">';
-														foreach($userGroups as $group) {
-															$groupInfo = getGroupInfo($group);
-															echo '<div title="' . $groupInfo['description'][$language] . '">' . $groupInfo['name'][$language] . '</div>';
+														if(count($userGroups) > 0) {
+															foreach($userGroups as $group) {
+																$groupInfo = getGroupInfo($group);
+																if($groupInfo['deleted'] != '1') {
+																	echo '<div title="' . $groupInfo['description'][$language] . '">' . $groupInfo['name'][$language] . '</div>';
+																}
+															}
+														} else {
+															echo $strings['531'];
 														}
 														echo '
 														</div>
@@ -582,7 +591,7 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 							<div class="">
 								<?php 
 									if($showAddGroupForm) {
-										echo '<div class="w3-center"><h4 style="display:inline-block;">' . $strings['484'] . '</h4><a href="usersAndGroups.php?action=cancelAddGroup" class="w3-button w3-red w3-margin">' . $strings['44'] . ' <i class="fa fa-plus-circle"></i></a></div>';
+										echo '<div class="w3-center"><h4 style="display:inline-block;">' . $strings['484'] . '</h4><a href="usersAndGroups.php?action=cancelAddGroup" class="w3-button w3-red w3-margin">' . $strings['44'] . ' <i class="fa fa-times-circle"></i></a></div>';
 										
 										echo '
 										<form method="POST" action="' . htmlspecialchars($_SERVER["PHP_SELF"]) .  '" autocomplete="off" class="w3-padding">
@@ -594,12 +603,12 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 												if (isset($englishGroupNameError)) { echo '<div class="w3-text-red">' . $englishGroupNameError . '</div>';} echo '
 											</div>
 											<div class="w3-padding-16">
-												<label>' . $strings['480'] . '*</label>
+												<label>' . $strings['480'] . '</label>
 												<input id="frenchGroupName" class="w3-input" type="text" name="frenchGroupName"'; if(isset($frenchGroupName)) { echo ' value="' . $frenchGroupName . '"'; } echo '>';
 												if (isset($frenchGroupNameError)) { echo '<div class="w3-text-red">' . $frenchGroupNameError . '</div>';} echo '
 											</div>
 											<div class="w3-padding-16">
-												<label>' . $strings['481'] . '</label>
+												<label>' . $strings['481'] . '*</label>
 												<input id="englishGroupDescription" class="w3-input" type="text" name="englishGroupDescription"'; if(isset($englishGroupDescription)) { echo ' value="' . $englishGroupDescription . '"'; } echo '>';
 												if (isset($englishGroupDescriptionError)) { echo '<div class="w3-text-red">' . $englishGroupDescriptionError . '</div>';} echo '
 											</div>
@@ -613,7 +622,7 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 											</div>
 										</form>';
 									} elseif ($showEditGroupForm){
-										echo '<a href="usersAndGroups.php?action=cancelEditGroup" class="w3-button w3-red w3-margin">' . $strings['44'] . ' <i class="fa fa-plus-circle"></i></a>';
+										echo '<a href="usersAndGroups.php?action=cancelEditGroup" class="w3-button w3-red w3-margin">' . $strings['44'] . ' <i class="fa fa-times-circle"></i></a>';
 										
 										echo '
 										<form method="POST" action="' . htmlspecialchars($_SERVER["PHP_SELF"]) .  '" autocomplete="off" class="w3-padding">
@@ -626,12 +635,12 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 												if (isset($editGroupNameEnError)) { echo '<div class="w3-text-red">' . $editGroupNameEnError . '</div>';} echo '
 											</div>
 											<div class="w3-padding-16">
-												<label>' . $strings['480'] . '*</label>
+												<label>' . $strings['480'] . '</label>
 												<input id="editGroupNameFr" class="w3-input" type="text" name="editGroupNameFr"'; if(isset($editGroupNameFr)) { echo ' value="' . $editGroupNameFr . '"'; } echo '>';
 												if (isset($editGroupNameFrError)) { echo '<div class="w3-text-red">' . $editGroupNameFrError . '</div>';} echo '
 											</div>
 											<div class="w3-padding-16">
-												<label>' . $strings['481'] . '</label>
+												<label>' . $strings['481'] . '*</label>
 												<input id="editGroupDescriptionEn" class="w3-input" type="text" name="editGroupDescriptionEn"'; if(isset($editGroupDescriptionEn)) { echo ' value="' . $editGroupDescriptionEn . '"'; } echo '>';
 												if (isset($editGroupDescriptionEnError)) { echo '<div class="w3-text-red">' . $editGroupDescriptionEnError . '</div>';} echo '
 											</div>
@@ -649,6 +658,10 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 										$businessGroups = getAllBusinessGroups();
 										$businessInfo = getBusinessInfo($_SESSION['userId']);
 										$effectivePermissions = getBusinessManagementPermissions();
+										usort($businessGroups, function ($a, $b) {
+											$language = $_SESSION['language'];
+											return strtolower($a['name'][$language]) <=> strtolower($b['name'][$language]);
+										});
 										foreach($businessGroups as $group) {
 											if($group['deleted'] != '1') {
 												$language = $_SESSION['language'];
@@ -673,10 +686,13 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 														</div>';
 														echo '<b>' . $strings['478'] . ':</b>
 														<div class="w3-padding">';
-															
-														foreach($group['members'] as $member) {
-															$memberInfo = getBusinessUserInfoFromId($member);
-															echo $memberInfo['name'] . ' (' . $memberInfo['email'] . ')<br>';
+														if(count($group['members']) > 0) {
+															foreach($group['members'] as $member) {
+																$memberInfo = getBusinessUserInfoFromId($member);
+																echo $memberInfo['name'] . ' (' . $memberInfo['email'] . ')<br>';
+															}
+														} else {
+															echo $strings['532'];
 														}
 														echo '
 														</div>

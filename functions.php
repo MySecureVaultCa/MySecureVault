@@ -1430,7 +1430,7 @@ function getBusinessUserInfo($certId) {
 	
 	$businessUser = false;
 	
-	$sql = "SELECT id, cipherSuite, iv, entry, tag FROM businessUsers WHERE userId='$_SESSION[userId]'";
+	$sql = "SELECT id, deleted, cipherSuite, iv, entry, tag FROM businessUsers WHERE userId='$_SESSION[userId]'";
 	$db_rawUsers = $conn -> query($sql);
 	while ($db_user = $db_rawUsers -> fetch_assoc()) {
 		$jsonUserInfo = decryptDataNextGen($db_user['iv'], $_SESSION['encryptionKey'], $db_user['entry'], $db_user['cipherSuite'], $db_user['tag']);
@@ -1439,6 +1439,7 @@ function getBusinessUserInfo($certId) {
 		if(in_array($certId, $userInfo['certs'])) {
 			$businessUser = json_decode($jsonUserInfo, true);
 			$businessUser['id'] = $db_user['id'];
+			$businessUser['deleted'] = $db_user['deleted'];
 		}
 	}
 	return $businessUser;	
@@ -1449,13 +1450,14 @@ function getBusinessUserInfoFromId($userId) {
 	global $conn;
 	$userId = mysqli_real_escape_string($conn, $userId);
 	
-	$sql = "SELECT id, userId, cipherSuite, iv, entry, tag FROM businessUsers WHERE userId='$_SESSION[userId]' AND id='$userId'";
+	$sql = "SELECT id, userId, deleted, cipherSuite, iv, entry, tag FROM businessUsers WHERE userId='$_SESSION[userId]' AND id='$userId'";
 	$db_rawUsers = $conn -> query($sql);
 	if(mysqli_num_rows($db_rawUsers) === 1) {
 		while ($db_user = $db_rawUsers -> fetch_assoc()) {
 			$jsonUserInfo = decryptDataNextGen($db_user['iv'], $_SESSION['encryptionKey'], $db_user['entry'], $db_user['cipherSuite'], $db_user['tag']);
 			$businessUser = json_decode($jsonUserInfo, true);
 			$businessUser['id'] = $db_user['id'];
+			$businessUser['deleted'] = $db_user['deleted'];
 		}
 	} else {
 		return false;
@@ -1503,7 +1505,7 @@ function getBusinessUserGroups($businessUserId) {
 	
 	global $conn;
 	
-	$sql = "SELECT id, userId, cipherSuite, iv, entry, tag FROM businessGroups WHERE userId='$_SESSION[userId]'";
+	$sql = "SELECT id, userId, deleted, cipherSuite, iv, entry, tag FROM businessGroups WHERE userId='$_SESSION[userId]'";
 	$db_rawBusinessGroups = $conn -> query($sql);
 	
 	if(mysqli_num_rows($db_rawBusinessGroups) > 0) {
@@ -1526,7 +1528,7 @@ function getGroupInfo($groupId) {
 	global $conn;
 	
 	mysqli_real_escape_string($conn, $groupId);
-	$sql = "SELECT id, userId, cipherSuite, iv, entry, tag FROM businessGroups WHERE id='$groupId' AND userId='$_SESSION[userId]'";
+	$sql = "SELECT id, userId, deleted, cipherSuite, iv, entry, tag FROM businessGroups WHERE id='$groupId' AND userId='$_SESSION[userId]'";
 	$db_rawGroup = $conn -> query($sql);
 	if(mysqli_num_rows($db_rawGroup) > 0) {
 		$db_group = $db_rawGroup -> fetch_assoc();
@@ -1534,6 +1536,7 @@ function getGroupInfo($groupId) {
 		$jsonGroup = decryptDataNextGen($db_group['iv'], $_SESSION['encryptionKey'], $db_group['entry'], $db_group['cipherSuite'], $db_group['tag']);
 		$businessGroup = json_decode($jsonGroup, true);
 		$businessGroup['id'] = $groupId;
+		$businessGroup['deleted'] = $db_group['deleted'];
 		
 		return $businessGroup;
 	} else {
@@ -1545,7 +1548,7 @@ function getAllBusinessUsers() {
 	// This function returns an array with all the users and their certs
 	global $conn;
 	
-	$sql = "SELECT id, cipherSuite, iv, entry, tag FROM businessUsers WHERE userId='$_SESSION[userId]'";
+	$sql = "SELECT id, deleted, cipherSuite, iv, entry, tag FROM businessUsers WHERE userId='$_SESSION[userId]'";
 	$db_rawBusinessUsers = $conn -> query($sql);
 	$businessUsers = array();
 	while($db_businessUsers = $db_rawBusinessUsers -> fetch_assoc()) {
@@ -1553,6 +1556,7 @@ function getAllBusinessUsers() {
 		
 		$businessUser = json_decode($jsonUser, true);
 		$businessUser['id'] = $db_businessUsers['id'];
+		$businessUser['deleted'] = $db_businessUsers['deleted'];
 		$businessUsers[] = $businessUser;
 	}
 	
@@ -1562,7 +1566,7 @@ function getAllBusinessUsers() {
 function getAllBusinessGroups() {
 	global $conn;
 	
-	$sql = "SELECT id, cipherSuite, iv, entry, tag FROM businessGroups WHERE userId='$_SESSION[userId]'";
+	$sql = "SELECT id, deleted, cipherSuite, iv, entry, tag FROM businessGroups WHERE userId='$_SESSION[userId]'";
 	$db_rawBusinessGroups = $conn -> query($sql);
 	$businessGroups = array();
 	while($db_businessGroups = $db_rawBusinessGroups -> fetch_assoc()) {
@@ -1570,13 +1574,31 @@ function getAllBusinessGroups() {
 		
 		$businessGroup = json_decode($jsonGroup, true);
 		$businessGroup['id'] = $db_businessGroups['id'];
+		$businessGroup['deleted'] = $db_businessGroups['deleted'];
 		$businessGroups[] = $businessGroup;
 	}
 	
 	return $businessGroups;
 }
 
-function businessGroupsList($selected) {
+function businessUsersList($selected='') {
+	$effectivePermission = getBusinessManagementPermissions();
+	$businessInfo = getBusinessInfo($_SESSION['userId']);
+	$language = $_SESSION['language'];
+	$users = getAllBusinessUsers();
+	$htmlString = '<option></option>';
+	
+	foreach($users as $user) {
+		if ($selected == $user['id']){ $select = ' selected';}
+			
+		$htmlString .= '<option value="' . $user['id'] . '"' . $select . '>' . $user['name'] . ' (' . $user['email'] . ')</option>';
+		unset($select);
+	}
+	
+	return $htmlString;
+}
+
+function businessGroupsList($selected='') {
 	$effectivePermission = getBusinessManagementPermissions();
 	$businessInfo = getBusinessInfo($_SESSION['userId']);
 	$language = $_SESSION['language'];
@@ -1586,16 +1608,20 @@ function businessGroupsList($selected) {
 	foreach($groups as $group) {
 		if($group['id'] == $businessInfo['business']['owningGroup']) {
 			if($effectivePermission['business'] == 'rw') {
+				if($group['deleted'] !== '1') {
+					if ($selected == $group['id']){ $select = ' selected';}
+					
+					$htmlString .= '<option value="' . $group['id'] . '"' . $select . '>' . $group['name'][$language] . '</option>';
+					unset($select);
+				}
+			}
+		} else {
+			if($group['deleted'] !== '1') {
 				if ($selected == $group['id']){ $select = ' selected';}
-				
+					
 				$htmlString .= '<option value="' . $group['id'] . '"' . $select . '>' . $group['name'][$language] . '</option>';
 				unset($select);
 			}
-		} else {
-			if ($selected == $group['id']){ $select = ' selected';}
-				
-			$htmlString .= '<option value="' . $group['id'] . '"' . $select . '>' . $group['name'][$language] . '</option>';
-			unset($select);
 		}
 	}
 	
@@ -1704,6 +1730,17 @@ function updateUserInfo($userId, $newUserInfo) {
 	
 	// Update user info...
 	$newUserInfo['lastModified'] = date("Y-m-d H:i:s");
+	if($newUserInfo['deleted'] == '1') {
+		unset($newUserInfo['deleted']);
+		$sql = "UPDATE businessUsers SET deleted='1' WHERE id='$userId'";
+		$conn -> query($sql);
+	}
+	if($currentUserInfo['deleted'] == '1' && $newUserInfo['deleted'] != '1') {
+		// Undelete user...
+		$sql = "UPDATE businessUsers SET deleted=NULL WHERE id='$userId'";
+		$conn -> query($sql);
+	}
+	
 	$jsonNewUserInfo = json_encode($newUserInfo);
 	
 	$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonNewUserInfo, $config['currentCipherSuite']);
@@ -1881,16 +1918,17 @@ function getRootFolder() {
 	global $conn;
 	
 	$business = $_SESSION['userId'];
-	$sql = "SELECT id, cipherSuite, iv, entry, tag FROM businessFolders WHERE userId = '$business'";
+	$sql = "SELECT id, parentFolder, cipherSuite, iv, entry, tag FROM businessFolders WHERE userId='$business' AND parentFolder IS NULL";
 	$db_rawFolders = $conn -> query($sql);
 	while ($db_folder = $db_rawFolders -> fetch_assoc()) {
 		$jsonFolder = decryptDataNextGen($db_folder['iv'], $_SESSION['encryptionKey'], $db_folder['entry'], $db_folder['cipherSuite'], $db_folder['tag']);
 		$folder = json_decode($jsonFolder, true);
-		if($folder['name'] == '/' && $folder['parent'] == '') {
+		if($folder['name'] == '/' && $db_folder['parentFolder'] == '') {
 			$folder['id'] = $db_folder['id'];
+			return $folder;
 		}
 	}
-	return $folder;
+	//var_dump($folder);
 }
 
 function getFolderInfo($folderId) {
@@ -1899,14 +1937,37 @@ function getFolderInfo($folderId) {
 	$business = $_SESSION['userId'];
 	$folderId = mysqli_real_escape_string($conn, $folderId);
 	
-	$sql = "SELECT id, cipherSuite, iv, entry, tag FROM businessFolders WHERE userId = '$business' AND id='$folderId'";
+	$sql = "SELECT id, parentFolder, deleted, cipherSuite, iv, entry, tag FROM businessFolders WHERE userId='$business' AND id='$folderId'";
 	$db_rawFolders = $conn -> query($sql);
-	if(mysqli_num_rows($db_rawFolders) == '1') {
+	if(mysqli_num_rows($db_rawFolders) === 1) {
 		$db_folder = $db_rawFolders -> fetch_assoc();
 		$jsonFolder = decryptDataNextGen($db_folder['iv'], $_SESSION['encryptionKey'], $db_folder['entry'], $db_folder['cipherSuite'], $db_folder['tag']);
 		$folder = json_decode($jsonFolder, true);
 		$folder['id'] = $folderId;
+		$folder['parentFolder'] = $db_folder['parentFolder'];
+		$folder['deleted'] = $db_folder['deleted'];
 		return $folder;
+	} else {
+		return false;
+	}
+}
+
+function getEntryInfo($entryId) {
+	global $conn;
+	
+	$business = $_SESSION['userId'];
+	$entryId = mysqli_real_escape_string($conn, $entryId);
+	
+	$sql = "SELECT id, parentFolder, deleted, cipherSuite, iv, entry, tag FROM businessEntries WHERE userId='$business' AND id='$entryId'";
+	$db_rawEntry = $conn -> query($sql);
+	if(mysqli_num_rows($db_rawEntry) === 1) {
+		$db_entry = $db_rawEntry -> fetch_assoc();
+		$jsonEntry = decryptDataNextGen($db_entry['iv'], $_SESSION['encryptionKey'], $db_entry['entry'], $db_entry['cipherSuite'], $db_entry['tag']);
+		$entry = json_decode($jsonEntry, true);
+		$entry['id'] = $db_entry['id'];
+		$entry['parentFolder'] = $db_entry['parentFolder'];
+		$entry['deleted'] = $db_entry['deleted'];
+		return $entry;
 	} else {
 		return false;
 	}
@@ -1915,16 +1976,26 @@ function getFolderInfo($folderId) {
 function getFolderEffectivePermission($folderId) {
 	$businessUser = getBusinessUserInfo($_SESSION['certId']);
 	$businessUserGroups = getBusinessUserGroups($businessUser['id']);
+	$businessInfo = getBusinessInfo($_SESSION['userId']);
 	
 	$folder = getFolderInfo($folderId);
 	
 	if($folder !== false) {
-		if($folder['owner'] == $businessUser['id']) {
-			$permission = $folder['acl']['u'];
-		} elseif (in_array($folder['owningGroup'], $businessUserGroups)) {
-			$permission = $folder['acl']['g'];
+		if(isEnterpriseAdmin($businessUser) || isBusinessOwner($businessUser)) {
+			// Business owner and enterprise admin always have all rights on all folders.
+			$permission = 'rwsb';
+		} elseif($folder['owningGroup'] != $businessInfo['business']['owningGroup'] && in_array($businessInfo['users']['owningGroup'], $businessUserGroups)) {
+			// Users managers can manage all folders that are not owned by enterprise admins.
+			$permission = 'rwsb';
 		} else {
-			$permission = $folder['acl']['o'];
+			//permission for standard users
+			if($folder['owner'] == $businessUser['id']) {
+				$permission = $folder['acl']['u'];
+			} elseif (in_array($folder['owningGroup'], $businessUserGroups)) {
+				$permission = $folder['acl']['g'];
+			} else {
+				$permission = $folder['acl']['o'];
+			}
 		}
 		return $permission;
 	} else {
@@ -1932,35 +2003,268 @@ function getFolderEffectivePermission($folderId) {
 	}
 }
 
+function getEntryEffectivePermission($entryId) {
+	$businessUser = getBusinessUserInfo($_SESSION['certId']);
+	$businessUserGroups = getBusinessUserGroups($businessUser['id']);
+	$businessInfo = getBusinessInfo($_SESSION['userId']);
+	
+	$entry = getEntryInfo($entryId);
+	
+	if($entry !== false) {
+		if(isEnterpriseAdmin($businessUser) || isBusinessOwner($businessUser)) {
+			// Business owner and enterprise admin always have all rights on all folders.
+			$permission = 'rwsb';
+		} else {
+			//permission for standard users
+			if($entry['owner'] == $businessUser['id']) {
+				$permission = $entry['acl']['u'];
+			} elseif (in_array($entry['owningGroup'], $businessUserGroups)) {
+				$permission = $entry['acl']['g'];
+			} else {
+				$permission = $entry['acl']['o'];
+			}
+		}
+		return $permission;
+	} else {
+		return false;
+	}
+}
+
+function defaultFolderPermission($parentFolder) {
+	$folder = getFolderInfo($parentFolder);
+	
+	if($folder !== false) {
+		$userPermission = $folder['acl']['u'];
+		$groupPermission = $folder['acl']['g'];
+		$otherPermission = $folder['acl']['o'];
+		if(strpos($userPermission, 'r') !== false) { $permission['u']['r'] = '1'; } else { $permission['u']['r'] = '0'; }
+		if(strpos($userPermission, 'w') !== false) { $permission['u']['w'] = '1'; } else { $permission['u']['w'] = '0'; }
+		if(strpos($userPermission, 's') !== false) { $permission['u']['s'] = '1'; } else { $permission['u']['s'] = '0'; }
+		if(strpos($userPermission, 'b') !== false) { $permission['u']['b'] = '1'; } else { $permission['u']['b'] = '0'; }
+		if(strpos($groupPermission, 'r') !== false) { $permission['g']['r'] = '1'; } else { $permission['g']['r'] = '0'; }
+		if(strpos($groupPermission, 'w') !== false) { $permission['g']['w'] = '1'; } else { $permission['g']['w'] = '0'; }
+		if(strpos($groupPermission, 's') !== false) { $permission['g']['s'] = '1'; } else { $permission['g']['s'] = '0'; }
+		if(strpos($groupPermission, 'b') !== false) { $permission['g']['b'] = '1'; } else { $permission['g']['b'] = '0'; }
+		if(strpos($otherPermission, 'r') !== false) { $permission['o']['r'] = '1'; } else { $permission['o']['r'] = '0'; }
+		if(strpos($otherPermission, 'w') !== false) { $permission['o']['w'] = '1'; } else { $permission['o']['w'] = '0'; }
+		if(strpos($otherPermission, 's') !== false) { $permission['o']['s'] = '1'; } else { $permission['o']['s'] = '0'; }
+		if(strpos($otherPermission, 'b') !== false) { $permission['o']['b'] = '1'; } else { $permission['o']['b'] = '0'; }
+		
+	} else {
+		return false;
+	}
+	
+	return $permission;
+}
+
+function makeCoherentFolderPermission($permissionArray) {
+	if(is_array($permissionArray)){
+		$newPermissionArray = array();
+		
+		if($permissionArray['u']['s'] == '1') {
+			$newPermissionArray['u']['s'] = '1';
+			$newPermissionArray['u']['w'] = '1';
+			$newPermissionArray['u']['r'] = '1';
+			$newPermissionArray['u']['b'] = '1';
+		} elseif($permissionArray['u']['w'] == '1') {
+			$newPermissionArray['u']['w'] = '1';
+			$newPermissionArray['u']['r'] = '1';
+			$newPermissionArray['u']['b'] = '1';
+		} elseif($permissionArray['u']['r'] == '1') {
+			$newPermissionArray['u']['r'] = '1';
+			$newPermissionArray['u']['b'] = '1';
+		} elseif($permissionArray['u']['b'] == '1') {
+			$newPermissionArray['u']['b'] = '1';
+		}
+		
+		if($permissionArray['g']['s'] == '1') {
+			$newPermissionArray['g']['s'] = '1';
+			$newPermissionArray['g']['w'] = '1';
+			$newPermissionArray['g']['r'] = '1';
+			$newPermissionArray['g']['b'] = '1';
+		} elseif($permissionArray['g']['w'] == '1') {
+			$newPermissionArray['g']['w'] = '1';
+			$newPermissionArray['g']['r'] = '1';
+			$newPermissionArray['g']['b'] = '1';
+		} elseif($permissionArray['g']['r'] == '1') {
+			$newPermissionArray['g']['r'] = '1';
+			$newPermissionArray['g']['b'] = '1';
+		} elseif($permissionArray['g']['b'] == '1') {
+			$newPermissionArray['g']['b'] = '1';
+		}
+		
+		if($permissionArray['o']['s'] == '1') {
+			$newPermissionArray['o']['s'] = '1';
+			$newPermissionArray['o']['w'] = '1';
+			$newPermissionArray['o']['r'] = '1';
+			$newPermissionArray['o']['b'] = '1';
+		} elseif($permissionArray['o']['w'] == '1') {
+			$newPermissionArray['o']['w'] = '1';
+			$newPermissionArray['o']['r'] = '1';
+			$newPermissionArray['o']['b'] = '1';
+		} elseif($permissionArray['o']['r'] == '1') {
+			$newPermissionArray['o']['r'] = '1';
+			$newPermissionArray['o']['b'] = '1';
+		} elseif($permissionArray['o']['b'] == '1') {
+			$newPermissionArray['o']['b'] = '1';
+		}
+		
+		return $newPermissionArray;
+	} else {
+		return false;
+	}
+}
+
+function computePermission($inputArray) {
+	// takes permission from posted form and computes it for folder ACL
+	foreach($inputArray as $key => $value) {
+		foreach($value as $perm => $permValue){
+			$outputArray[$key] .= $perm;
+		}
+	}
+	return $outputArray;
+}
+
 function buildHierarchy($folderId) {
+	// This functions builds an upstream hierarchy from a child folder, up to the root.
 	global $conn;
 	
 	$business = $_SESSION['userId'];
 	$folderId = mysqli_real_escape_string($conn, $folderId);
-	$sql = "SELECT id, cipherSuite, iv, entry, tag FROM businessFolders WHERE userId = '$business' AND id='$folderId'";
+	$sql = "SELECT id, parentFolder, cipherSuite, iv, entry, tag FROM businessFolders WHERE userId='$business' AND id='$folderId'";
 	$db_rawFolders = $conn -> query($sql);
 	if(mysqli_num_rows($db_rawFolders) == '1') {
+		$rootFolder = getRootFolder();
 		$db_folder = $db_rawFolders -> fetch_assoc();
 		$jsonFolder = decryptDataNextGen($db_folder['iv'], $_SESSION['encryptionKey'], $db_folder['entry'], $db_folder['cipherSuite'], $db_folder['tag']);
 		$folder = json_decode($jsonFolder, true);
 		$folder['id'] = $folderId;
-		$depth = 0;
-		while($folder['parent'] != '') {
-			$depth++;
+		$folder['parentFolder'] = $db_folder['parentFolder'];
+		$hierarchy[] = $folder;
+		while($folder['id'] != $rootFolder['id']) {
 			// Loop until there is no parent left...
-			$sql = "SELECT id, cipherSuite, iv, entry, tag FROM businessFolders WHERE userId = '$business' AND id='$folder[parent]'";
+			$sql = "SELECT id, parentFolder, cipherSuite, iv, entry, tag FROM businessFolders WHERE userId = '$business' AND id='$db_folder[parentFolder]'";
 			$db_rawFolders = $conn -> query($sql);
 			$db_folder = $db_rawFolders -> fetch_assoc();
 			$jsonFolder = decryptDataNextGen($db_folder['iv'], $_SESSION['encryptionKey'], $db_folder['entry'], $db_folder['cipherSuite'], $db_folder['tag']);
 			$folder = json_decode($jsonFolder, true);
-			$folder['id'] = $folderId;
-			$folder['subfolder'] = $folder;
+			$folder['id'] = $db_folder['id'];
+			$folder['parentFolder'] = $db_folder['parentFolder'];
+			$hierarchy[] = $folder;
 		}
-		$folder['depth'] = $depth;
-		return $folder;
+		krsort($hierarchy);
+		return $hierarchy;
 		
 	} else {
 		return false;
+	}
+}
+
+function getFolderObjects($folderId) {
+	// Returns all direct childs of $folderId
+	global $conn;
+	$requestingUser = getBusinessUserInfo($_SESSION['certId']);
+	$requestingUserGroups = getBusinessUserGroups($requestingUser['id']);
+	
+	$business = $_SESSION['userId'];
+	$folderId = mysqli_real_escape_string($conn, $folderId);
+	
+	$sql = "SELECT id, parentFolder FROM businessFolders WHERE userId='$business' AND id='$folderId'";
+	$db_rawFolder = $conn -> query($sql);
+	if(mysqli_num_rows($db_rawFolder) == '1') {
+		// Folder exists... get all folders that could be our child...
+		$sql = "SELECT id, parentFolder, deleted, cipherSuite, iv, entry, tag FROM businessFolders WHERE userId='$business' AND parentFolder='$folderId'";
+		$db_rawFolders = $conn -> query($sql);
+		while($db_folder = $db_rawFolders -> fetch_assoc()) {
+			// Found a child. Validate permission before adding to the array...
+			$jsonFolder = decryptDataNextGen($db_folder['iv'], $_SESSION['encryptionKey'], $db_folder['entry'], $db_folder['cipherSuite'], $db_folder['tag']);
+			$folder = json_decode($jsonFolder, true);
+			$folderPermission = getFolderEffectivePermission($db_folder['id']);
+			if(strpos($folderPermission, 'r') !== false || strpos($folderPermission, 'b') !== false || isBusinessOwner($requestingUser['id']) || isEnterpriseAdmin($requestingUser['id'])) {
+				// Right to read or browse... add it to the array.
+				$folder['id'] = $db_folder['id'];
+				$folder['parentFolder'] = $db_folder['parentFolder'];
+				$folder['deleted'] = $db_folder['deleted'];
+				$childFolders[] = $folder;
+			}
+		}
+		
+		return $childFolders;
+	} else {
+		return false;
+	}
+}
+
+function getLeafObjects($folderId) {
+	// Returns all direct childs of $folderId
+	global $conn;
+	$requestingUser = getBusinessUserInfo($_SESSION['certId']);
+	$requestingUserGroups = getBusinessUserGroups($requestingUser['id']);
+	
+	$business = $_SESSION['userId'];
+	$folderId = mysqli_real_escape_string($conn, $folderId);
+	
+	$sql = "SELECT id, parentFolder, deleted, cipherSuite, iv, entry, tag FROM businessFolders WHERE userId='$business' AND id='$folderId'";
+	$db_rawFolder = $conn -> query($sql);
+	if(mysqli_num_rows($db_rawFolder) == '1') {
+		// Folder exists... get all entries that could be our child...
+		$sql = "SELECT id, parentFolder, cipherSuite, iv, entry, tag FROM businessEntries WHERE userId='$business' AND parentFolder='$folderId'";
+		$db_rawEntries = $conn -> query($sql);
+		while($db_entry = $db_rawEntries -> fetch_assoc()) {
+			// Found a child entry. Validate permission before adding to the array...
+			$jsonEntry = decryptDataNextGen($db_entry['iv'], $_SESSION['encryptionKey'], $db_entry['entry'], $db_entry['cipherSuite'], $db_entry['tag']);
+			$entry = json_decode($jsonEntry, true);
+			$entryPermission = getEntryEffectivePermission($db_entry['id']);
+			if(strpos($entryPermission, 'r') !== false || strpos($entryPermission, 'b') !== false || isBusinessOwner($requestingUser['id']) || isEnterpriseAdmin($requestingUser['id'])) {
+				// Right to read or browse... add it to the array.
+				$entry['id'] = $db_entry['id'];
+				$entry['parentFolder'] = $db_entry['parentFolder'];
+				$entry['deleted'] = $db_entry['deleted'];
+				if($entry['type'] == 'password') {
+					$leafEntries['passwords'][] = $entry;
+				} elseif($entry['type'] == 'note') {
+					$leafEntries['notes'][] = $entry;
+				} elseif($entry['type'] == 'file') {
+					$leafEntries['files'][] = $entry;
+				}
+			}
+		}
+		return $leafEntries;
+	} else {
+		return false;
+	}
+}
+
+function getAllChildObjects($folderId) {
+	global $conn;
+	$rootFolder = getRootFolder();
+	
+	$folderId = mysqli_real_escape_string($conn, $folderId);
+	// Get all direct child objects
+	$sql = "SELECT id, parentFolder FROM businessFolders WHERE userId='$_SESSION[userId]' AND id='$folderId'";
+	$db_rawFolder = $conn -> query($sql);
+	if(mysqli_num_rows($db_rawFolder) > 0) {
+		// Folder exists... add it to the array of folders to scan.
+		$foldersToLoop = array($folderId);
+		
+		while(count($foldersToLoop) > 0) {
+			$sql = "SELECT id, parentFolder FROM businessFolders WHERE userId='$_SESSION[userId]' AND parentFolder='$foldersToLoop[0]'";
+			$db_rawChildFolders = $conn -> query($sql);
+			if(mysqli_num_rows($db_rawChildFolders) > 0) {
+				while($db_childFolder = $db_rawChildFolders -> fetch_assoc()) {
+					$foldersToLoop[] = $db_childFolder['id'];
+					$child['folders'][] = $db_childFolder['id'];
+				}
+			}
+			array_shift($foldersToLoop);
+		}
+		
+		// When we'll have entries, we'll look them up here...
+		
+		return $child;
+	} else {
+		return false;
+		// No folder found...
 	}
 }
 

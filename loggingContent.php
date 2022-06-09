@@ -175,7 +175,7 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 					<h1 class="w3-border-bottom w3-border-blue"><i class="fa fa-list"></i> <?php echo $strings['456'] ?></h1>
 					
 					<?php
-					$sql = "SELECT id, userId, cipherSuite, iv, entry, tag FROM businessSyslog WHERE userId='$_SESSION[userId]'";
+					$sql = "SELECT id, userId, cipherSuite, iv, entry, tag FROM businessSyslog WHERE userId='$_SESSION[userId]' ORDER BY id DESC";
 					$db_rawLog = $conn -> query($sql);
 					echo '<textarea readonly rows="50" style="width:100%; white-space: pre; overflow-wrap: normal; overflow-x: scroll;">';
 					while($db_log = $db_rawLog -> fetch_assoc()) {

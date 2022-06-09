@@ -239,10 +239,13 @@ if(!isset($_SESSION['language'])) { $_SESSION['language'] = 'en'; }
 								$businessGroups = getAllBusinessGroups();
 								$certInfo = getBusinessUserCertInfo($_SESSION['certId']);
 								$rootFolder = getRootFolder();
+								$childObjects = getAllChildObjects('82');
+								$entry = getLeafObjects('195');
 								
 								echo '<pre>';
-									var_dump($rootFolder);
+									var_dump($entry);
 								echo '</pre>';
+								
 							}
 						} else {
 							echo 'Standard account';

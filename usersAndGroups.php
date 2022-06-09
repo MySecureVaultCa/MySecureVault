@@ -250,15 +250,7 @@ if (initiateSession()) {
 							// OK to delete this group
 							logAction('68', 'Group: (ID: ' . $deleteGroup['id'] . ') ' . $deleteGroup['name']['en']);
 							
-							$deleteGroup['deleted'] = '1';
-							
-							$jsonEntry = json_encode($deleteGroup);
-							$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
-							$encryptedEntryIv = $encryptedEntry['iv'];
-							$encryptedEntryData = $encryptedEntry['data'];
-							$encryptedEntryTag = $encryptedEntry['tag'];
-							
-							$sql = "UPDATE businessGroups SET cipherSuite='$config[currentCipherSuite]', iv='$encryptedEntryIv', entry='$encryptedEntryData', tag='$encryptedEntryTag' WHERE id='$deleteGroup[id]'";
+							$sql = "UPDATE businessGroups SET deleted='1' WHERE id='$deleteGroup[id]'";
 							$conn -> query($sql);
 						} else {
 							// Trying to delete one of the system groups. This is not permitted!
@@ -761,6 +753,7 @@ if (initiateSession()) {
 						$editUser['city'] = $editUserCity;
 						$editUser['state'] = $editUserState;
 						$editUser['country'] = $editUserCountry;
+						$editUser['lastModified'] = date('Y-m-d H:i:s');
 						
 						updateUserInfo($editUser['id'], $editUser);
 						
@@ -917,6 +910,7 @@ if (initiateSession()) {
 						$group['members'] = array();
 						$group['description']['en'] = $englishGroupDescription;
 						$group['description']['fr'] = $frenchGroupDescription;
+						$group['createdOn'] = date('Y-m-d H:i:s');
 						
 						$jsonEntry = json_encode($group);
 						$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);
@@ -987,6 +981,8 @@ if (initiateSession()) {
 								$editGroup['name']['fr'] = $editGroupNameFr;
 								$editGroup['description']['en'] = $editGroupDescriptionEn;
 								$editGroup['description']['fr'] = $editGroupDescriptionFr;
+								$editGroup['lastModified'] = date('Y-m-d H:i:s');
+								
 								
 								$jsonEntry = json_encode($editGroup);
 								$encryptedEntry = encryptDataNextGen($_SESSION['encryptionKey'], $jsonEntry, $config['currentCipherSuite']);

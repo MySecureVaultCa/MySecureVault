@@ -23,7 +23,7 @@
 					</a>';
 				} else {
 					$businessInfo = getBusinessInfo($_SESSION['userId']);
-					if(strlen($businessInfo['business']['name']) > 20) { $businessHomeDisplayName = $strings['168'] . ' - ' . substr($businessInfo['business']['name'], 0, 17) . '...'; } else { $businessHomeDisplayName = $strings['168'] . ' - ' . $businessInfo['business']['name']; }
+					if(strlen($businessInfo['business']['name']) > 20) { $businessHomeDisplayName = $strings['168'] . ' - ' . mb_substr($businessInfo['business']['name'], 0, 17) . '...'; } else { $businessHomeDisplayName = $strings['168'] . ' - ' . $businessInfo['business']['name']; }
 					echo '<a href="businessHome.php" class="w3-hover-blue w3-button w3-large w3-white w3-border-top" style="padding:15px!important;">
 						<i class="fa fa-home">
 							<span style="font-family: arial;"> ' . $businessHomeDisplayName . '</span>
